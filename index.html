@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"
+  />
+  <meta name="theme-color" content="#0284c7" />
+  <title>Tom shipper</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+  <div id="splashScreen" class="splash-screen" aria-label="Đang tải Tom Shipper">
+    <div class="splash-content">
+      <div class="splash-mark">T</div>
+      <h1>Tom Shipper</h1>
+      <p>by Duy Hoang Network</p>
+      <div class="splash-loader" aria-hidden="true"><span></span></div>
+    </div>
+  </div>
+
+  <svg class="hidden" xmlns="http://www.w3.org/2000/svg">
+    <symbol id="i-home" viewBox="0 0 24 24">
+      <path d="m3 10 9-7 9 7v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+      <path d="M9 22v-7h6v7" fill="none" stroke="currentColor" stroke-width="2"/>
+    </symbol>
+    <symbol id="i-chart" viewBox="0 0 24 24">
+      <path d="M5 20v-7m7 7V4m7 16v-11" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"/>
+    </symbol>
+    <symbol id="i-history" viewBox="0 0 24 24">
+      <path d="M3 12a9 9 0 1 0 2.6-6.4L3 8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M3 3v5h5m4-4v8l4 2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24">
+      <path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+    </symbol>
+    <symbol id="i-phone" viewBox="0 0 24 24">
+      <path d="M5.5 3.5 8.2 3a1.8 1.8 0 0 1 2 1.2l.9 3a1.8 1.8 0 0 1-.5 1.8L9 10.6a14 14 0 0 0 4.4 4.4l1.6-1.6a1.8 1.8 0 0 1 1.8-.5l3 1a1.8 1.8 0 0 1 1.2 2l-.5 2.7a2.4 2.4 0 0 1-2.4 2C10.3 20.6 3.4 13.7 3.4 5.9a2.4 2.4 0 0 1 2.1-2.4Z" fill="none" stroke="currentColor" stroke-width="2"/>
+    </symbol>
+    <symbol id="i-map" viewBox="0 0 24 24">
+      <path d="M12 21s7-6.1 7-12A7 7 0 1 0 5 9c0 5.9 7 12 7 12Z" fill="none" stroke="currentColor" stroke-width="2"/>
+      <circle cx="12" cy="9" r="2.3" fill="none" stroke="currentColor" stroke-width="2"/>
+    </symbol>
+    <symbol id="i-check" viewBox="0 0 24 24">
+      <path d="m5 12 4.2 4.2L19.5 6" fill="none" stroke="currentColor" stroke-width="2.7" stroke-linecap="round" stroke-linejoin="round"/>
+    </symbol>
+    <symbol id="i-close" viewBox="0 0 24 24">
+      <path d="M6 6l12 12M18 6 6 18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+    </symbol>
+    <symbol id="i-card" viewBox="0 0 24 24">
+      <rect x="3" y="6" width="18" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="2"/>
+      <circle cx="12" cy="12" r="2.5" fill="none" stroke="currentColor" stroke-width="2"/>
+    </symbol>
+    <symbol id="i-bank" viewBox="0 0 24 24">
+      <path d="m3 9 9-5 9 5M5 10v8m4-8v8m6-8v8m4-8v8M3 20h18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+    </symbol>
+  </svg>
+
+  <main class="app-shell">
+    <header class="app-header">
+      <div>
+        <p>Quản lý giao hàng</p>
+        <h1>Tom shipper</h1>
+      </div>
+      <button id="headerAddButton" class="header-add" aria-label="Thêm đơn">
+        <svg><use href="#i-plus"></use></svg>
+      </button>
+    </header>
+
+    <section id="homeTab" class="tab-content active">
+      <div class="section-heading">
+        <div>
+          <h2>Đơn hôm nay</h2>
+          <p id="todayLabel"></p>
+        </div>
+        <span id="pendingCountBadge" class="count-badge">0 đơn</span>
+      </div>
+
+      <div id="orderList" class="order-list"></div>
+
+      <div id="homeEmpty" class="empty-state hidden">
+        <div class="empty-icon">
+          <svg><use href="#i-home"></use></svg>
+        </div>
+        <h3>Chưa có đơn chờ giao</h3>
+        <p>Thêm đơn hàng để bắt đầu hành trình hôm nay.</p>
+        <button id="emptyAddButton" class="primary-button">
+          <svg><use href="#i-plus"></use></svg>
+          Thêm đơn hàng
+        </button>
+      </div>
+    </section>
+
+    <section id="statsTab" class="tab-content">
+      <div class="section-heading">
+        <div>
+          <h2>Thống kê hôm nay</h2>
+          <p id="statsDateLabel"></p>
+        </div>
+      </div>
+
+      <div class="stats-list">
+        <article class="stat-card completed-stat">
+          <div class="stat-icon">
+            <svg><use href="#i-check"></use></svg>
+          </div>
+          <div>
+            <p>Đã giao thành công</p>
+            <strong id="completedCount">0</strong>
+            <span>đơn hoàn thành</span>
+          </div>
+        </article>
+
+        <article class="stat-card pending-stat">
+          <div class="stat-icon">
+            <svg><use href="#i-card"></use></svg>
+          </div>
+          <div>
+            <p>Đang chờ giao</p>
+            <strong id="pendingCount">0</strong>
+            <span>đơn cần xử lý</span>
+          </div>
+        </article>
+
+        <article class="stat-card cancelled-stat">
+          <div class="stat-icon">
+            <svg><use href="#i-close"></use></svg>
+          </div>
+          <div>
+            <p>Đơn đã hủy</p>
+            <strong id="cancelledCount">0</strong>
+            <span>đơn không giao</span>
+          </div>
+        </article>
+      </div>
+
+      <div class="stats-management">
+        <button id="deleteTodayOrders" class="danger-button" type="button">Xóa tất cả đơn hôm nay</button>
+        <button id="resetAllOrders" class="secondary-button" type="button">Làm lại / Đặt lại (Reset)</button>
+      </div>
+      <p class="stats-note">
+        Thống kê được tính theo đơn hàng được tạo trong ngày hôm nay.
+      </p>
+    </section>
+
+    <section id="historyTab" class="tab-content">
+      <div class="section-heading">
+        <div>
+          <h2>Lịch sử đơn hàng</h2>
+          <p>Tra cứu đơn theo ngày tạo</p>
+        </div>
+      </div>
+
+      <label class="date-filter">
+        <span>Chọn ngày</span>
+        <input id="historyDate" type="date" />
+      </label>
+
+      <div id="historyList" class="order-list history-list"></div>
+
+      <div id="historyEmpty" class="empty-state compact hidden">
+        <div class="empty-icon">
+          <svg><use href="#i-history"></use></svg>
+        </div>
+        <h3>Chưa có lịch sử</h3>
+        <p>Không tìm thấy đơn hàng trong ngày đã chọn.</p>
+      </div>
+    </section>
+  </main>
+
+
+  <nav class="bottom-nav">
+    <button class="nav-item active" data-tab="home">
+      <svg><use href="#i-home"></use></svg>
+      <span>Trang chủ</span>
+    </button>
+    <button class="nav-item" data-tab="stats">
+      <svg><use href="#i-chart"></use></svg>
+      <span>Thống kê</span>
+    </button>
+    <button class="nav-item" data-tab="history">
+      <svg><use href="#i-history"></use></svg>
+      <span>Lịch sử</span>
+    </button>
+  </nav>
+
+  <!-- Modal thêm đơn -->
+  <div id="orderModal" class="modal-backdrop hidden">
+    <section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="orderModalTitle">
+      <div class="modal-header">
+        <div>
+          <h2 id="orderModalTitle">Thêm đơn hàng</h2>
+          <p id="orderModalSubtitle">Chọn cách nhập phù hợp</p>
+        </div>
+        <button id="closeOrderModal" class="icon-button" aria-label="Đóng">
+          <svg><use href="#i-close"></use></svg>
+        </button>
+      </div>
+
+      <div class="input-mode-tabs">
+        <button class="input-mode active" data-mode="manual">Nhập thủ công</button>
+        <button class="input-mode" data-mode="bulk">Thêm nhiều đơn</button>
+      </div>
+
+      <form id="manualForm" class="order-form">
+        <label>
+          <span>Tên khách hàng</span>
+          <input id="customerName" type="text" placeholder="Ví dụ: Nguyễn Văn An" required />
+        </label>
+
+        <label>
+          <span>Số điện thoại</span>
+          <input id="customerPhone" type="tel" inputmode="tel" placeholder="0901234567" required />
+        </label>
+
+        <label>
+          <span>Chi tiết đơn hàng</span>
+          <textarea id="orderDetail" rows="2" placeholder="Ví dụ: 2 ly trà đào, 1 bánh mì" required></textarea>
+        </label>
+
+        <label>
+          <span>Địa chỉ giao hàng</span>
+          <textarea id="customerAddress" rows="2" placeholder="Số nhà, tên đường, phường/xã..." required></textarea>
+        </label>
+
+        <label>
+          <span>Ghi chú <em>(không bắt buộc)</em></span>
+          <textarea id="orderNote" rows="2" placeholder="Ví dụ: Gọi trước khi đến"></textarea>
+        </label>
+
+        <label class="cash-option">
+          <input id="cashPayment" type="checkbox" />
+          <span class="fake-checkbox"></span>
+          <span>
+            <strong>Khách trả tiền mặt</strong>
+            <small>Bỏ chọn nếu khách chuyển khoản</small>
+          </span>
+        </label>
+
+        <button type="submit" class="primary-button full-button">
+          <svg><use href="#i-plus"></use></svg>
+          Lưu đơn hàng
+        </button>
+      </form>
+
+      <form id="bulkForm" class="order-form hidden">
+        <label>
+          <span>Danh sách đơn hàng</span>
+          <textarea
+            id="bulkOrderText"
+            rows="10"
+            placeholder="Nguyễn Văn An - 2 ly trà đào - 0901234567 - 12 Nguyễn Huệ Q1 - Gọi trước&#10;Vy Cherry - 1 bò, 1 xá xíu - - Cổng chính - Giao gấp&#10;Trần Thị Mai - 1 phần cơm"
+            required
+          ></textarea>
+        </label>
+
+        <p class="bulk-guide">
+          Mỗi dòng là một đơn theo mẫu:<br />
+          <b>Tên - Đơn hàng - Số điện thoại - Địa chỉ - Ghi chú</b><br />
+          Chỉ cần nhập Tên và Đơn hàng; các trường còn lại có thể để trống.
+        </p>
+
+        <button type="submit" class="primary-button full-button">
+          <svg><use href="#i-plus"></use></svg>
+          Lưu các đơn hợp lệ
+        </button>
+      </form>
+    </section>
+  </div>
+
+  <!-- Modal xác nhận -->
+  <div id="confirmModal" class="modal-backdrop hidden">
+    <section class="confirm-card" role="dialog" aria-modal="true">
+      <div id="confirmIcon" class="confirm-icon"></div>
+      <h2 id="confirmTitle">Xác nhận thao tác</h2>
+      <p id="confirmMessage"></p>
+
+      <div class="confirm-actions">
+        <button id="confirmCancel" class="secondary-button">Không</button>
+        <button id="confirmPhotoComplete" class="photo-complete-button hidden" type="button">📸 Chụp ảnh &amp; hoàn thành</button>
+        <button id="confirmAccept" class="danger-button">Xác nhận</button>
+      </div>
+    </section>
+  </div>
+
+  <input id="proofPhotoInput" class="hidden" type="file" accept="image/*" capture="environment" />
+
+  <div id="proofLightbox" class="proof-lightbox hidden" role="dialog" aria-modal="true" aria-label="Ảnh xác nhận giao hàng">
+    <button id="closeProofLightbox" class="proof-lightbox-close" type="button" aria-label="Đóng ảnh">×</button>
+    <img id="proofLightboxImage" alt="Ảnh xác nhận giao hàng" />
+    <p id="proofLightboxCaption"></p>
+    <button id="downloadProofImage" class="proof-download-button" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0 4-4m-4 4-4-4M4 17v3h16v-3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Tải ảnh về</button>
+  </div>
+
+  <div id="toast" class="toast hidden"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
