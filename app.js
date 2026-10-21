@@ -733,17 +733,41 @@ async function downloadBrandedProof() {
     ctx.fillText("BẰNG CHỨNG GIAO HÀNG", canvas.width / 2, footerY + footerHeight * 0.70, canvas.width - pad * 2);
 
     const blob = await new Promise((resolve, reject) => canvas.toBlob((value) => value ? resolve(value) : reject(new Error("Không thể xuất PNG.")), "image/png"));
+    const fileName = `XacNhan_Don_${safeFileName(name)}.png`;
+    const imageFile = new File([blob], fileName, { type: "image/png", lastModified: Date.now() });
+
+    // Trên iOS/Android, mở bảng chia sẻ hệ thống để shipper có thể chọn
+    // Lưu hình ảnh / Save Image hoặc Photos/Gallery nếu ứng dụng đích hỗ trợ.
+    // Web Share không thể tự ép hệ điều hành lưu thẳng vào thư viện ảnh.
+    if (navigator.share && navigator.canShare && navigator.canShare({ files: [imageFile] })) {
+      try {
+        await navigator.share({
+          files: [imageFile],
+          title: "Ảnh xác thực giao hàng",
+          text: `Xác nhận giao hàng · ${name}`
+        });
+        showToast("Đã lưu ảnh xác thực vào thiết bị!");
+        return;
+      } catch (shareError) {
+        // Người dùng chủ động đóng bảng chia sẻ thì không tự tải file ngoài ý muốn.
+        if (shareError && shareError.name === "AbortError") return;
+        // Nếu chia sẻ không khả dụng/lỗi, tiếp tục với phương án tải xuống.
+      }
+    }
+
+    // Fallback cho desktop hoặc trình duyệt không hỗ trợ chia sẻ tệp.
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `Don_Hoan_Thanh_${safeFileName(name)}.png`;
+    link.download = fileName;
+    link.style.display = "none";
     document.body.appendChild(link);
     link.click();
     link.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 1500);
-    showToast("Đã tạo và tải ảnh xác thực có khung thương hiệu.");
+    window.setTimeout(() => URL.revokeObjectURL(url), 3000);
+    showToast("Đã lưu ảnh xác thực vào thiết bị!");
   } catch (error) {
-    showToast(error.message || "Không thể tải ảnh xác thực.");
+    showToast(error.message || "Không thể lưu ảnh xác thực.");
   }
 }
 
