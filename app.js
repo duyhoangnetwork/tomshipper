@@ -1,10 +1,13 @@
 const STORAGE_KEY = "tom_shipper_orders_v2";
+const THEME_STORAGE_KEY = "tom_shipper_theme_v1";
 const MAX_STORAGE_DAYS = 180;
 
 let pendingConfirmAction = null;
 let pendingPhotoConfirmAction = null;
 let editingOrderId = null;
 let currentProofOrder = null;
+let statsView = "day";
+let activeTabName = "home";
 
 const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => [...document.querySelectorAll(selector)];
@@ -21,6 +24,14 @@ function formatDate(dateString) {
     month: "2-digit",
     year: "numeric"
   }).format(new Date(`${dateString}T00:00:00`));
+}
+
+function formatCompletionTimestamp(timestamp) {
+  if (!timestamp) return "";
+  const date = new Date(timestamp);
+  if (Number.isNaN(date.getTime())) return "";
+  const pad = (value) => String(value).padStart(2, "0");
+  return `${pad(date.getHours())}:${pad(date.getMinutes())} - ${pad(date.getDate())}/${pad(date.getMonth() + 1)}/${date.getFullYear()}`;
 }
 
 function createId() {
@@ -130,6 +141,9 @@ function buildOrderCard(order, isHistory = false) {
   const isCash = order.paymentMethod === "cod";
   const telUrl = `tel:${encodeURIComponent(order.phone)}`;
   const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(order.address)}`;
+  const completionTimeLabel = order.status === "completed"
+    ? (formatCompletionTimestamp(order.completedAt) || "Chưa lưu mốc giờ")
+    : "";
 
   return `
     <article class="order-card ${order.status}">
@@ -143,6 +157,13 @@ function buildOrderCard(order, isHistory = false) {
           </div>
           <span class="status-badge ${status.className}">${status.label}</span>
         </div>
+
+        ${order.status === "completed" ? `
+          <div class="completion-time" aria-label="Thời gian hoàn thành">
+            <span aria-hidden="true">🕒</span>
+            <span>Đã giao lúc: ${escapeHTML(completionTimeLabel)}</span>
+          </div>
+        ` : ""}
 
         <p class="order-detail">${escapeHTML(order.detail)}</p>
 
@@ -248,26 +269,91 @@ function renderHome() {
   $("#homeEmpty").classList.toggle("hidden", pendingOrders.length > 0);
 }
 
+function addDaysToLocalDate(dateString, dayOffset) {
+  const date = new Date(`${dateString}T12:00:00`);
+  date.setDate(date.getDate() + dayOffset);
+  return getLocalDate(date);
+}
+
+function getWeekRange(anchorDate) {
+  const date = new Date(`${anchorDate}T12:00:00`);
+  const day = date.getDay();
+  const mondayOffset = day === 0 ? -6 : 1 - day;
+  const start = addDaysToLocalDate(anchorDate, mondayOffset);
+  return { start, end: addDaysToLocalDate(start, 6) };
+}
+
+function getCompletedDate(order) {
+  if (order.completedAt) {
+    const parsed = new Date(order.completedAt);
+    if (!Number.isNaN(parsed.getTime())) return getLocalDate(parsed);
+  }
+  return order.date;
+}
+
 function renderStats() {
   const today = getLocalDate();
-  const orders = getOrders().filter((order) => order.date === today);
+  const allOrders = getOrders();
+  const dayOrders = allOrders.filter((order) => order.date === today);
+  const dayCompleted = dayOrders.filter((order) => order.status === "completed").length;
+  const dayPending = dayOrders.filter((order) => order.status === "pending").length;
+  const dayCancelled = dayOrders.filter((order) => order.status === "cancelled").length;
 
-  const completed = orders.filter((order) => order.status === "completed").length;
-  const pending = orders.filter((order) => order.status === "pending").length;
-  const cancelled = orders.filter((order) => order.status === "cancelled").length;
+  $("#completedCount").textContent = dayCompleted;
+  $("#pendingCount").textContent = dayPending;
+  $("#cancelledCount").textContent = dayCancelled;
 
-  $("#statsDateLabel").textContent = formatDate(today);
-  $("#completedCount").textContent = completed;
-  $("#pendingCount").textContent = pending;
-  $("#cancelledCount").textContent = cancelled;
+  const isWeek = statsView === "week";
+  $("#statsDayView").classList.toggle("hidden", isWeek);
+  $("#statsWeekView").classList.toggle("hidden", !isWeek);
+  $("#weekFilterWrap").classList.toggle("hidden", !isWeek);
+  $("#statsHeading").textContent = isWeek ? "Thống kê theo tuần" : "Thống kê hôm nay";
+  $$(".stats-view-button").forEach((button) => {
+    const selected = button.dataset.statsView === statsView;
+    button.classList.toggle("active", selected);
+    button.setAttribute("aria-selected", String(selected));
+  });
+
+  if (!isWeek) {
+    $("#statsDateLabel").textContent = formatDate(today);
+    return;
+  }
+
+  if (!$("#statsWeekDate").value) $("#statsWeekDate").value = today;
+  const range = getWeekRange($("#statsWeekDate").value);
+  const dates = Array.from({ length: 7 }, (_, index) => addDaysToLocalDate(range.start, index));
+  const inRange = (dateString) => dateString >= range.start && dateString <= range.end;
+  const completedOrders = allOrders.filter((order) => order.status === "completed" && inRange(getCompletedDate(order)));
+  const pendingOrders = allOrders.filter((order) => order.status === "pending" && inRange(order.date));
+  const cancelledOrders = allOrders.filter((order) => order.status === "cancelled" && inRange(order.date));
+
+  $("#weeklyCompletedCount").textContent = completedOrders.length;
+  $("#weeklyPendingCount").textContent = pendingOrders.length;
+  $("#weeklyCancelledCount").textContent = cancelledOrders.length;
+  $("#statsDateLabel").textContent = `${formatDate(range.start)} – ${formatDate(range.end)}`;
+
+  const counts = dates.map((date) => completedOrders.filter((order) => getCompletedDate(order) === date).length);
+  const maxCount = Math.max(1, ...counts);
+  $("#weeklyBreakdown").innerHTML = dates.map((date, index) => {
+    const weekday = new Intl.DateTimeFormat("vi-VN", { weekday: "short" }).format(new Date(`${date}T12:00:00`));
+    const dayNumber = date.slice(8, 10);
+    const count = counts[index];
+    const height = count === 0 ? 4 : Math.max(12, Math.round((count / maxCount) * 100));
+    return `<div class="weekly-bar-column" title="${escapeHTML(formatDate(date))}: ${count} đơn">
+      <strong class="weekly-bar-count">${count}</strong>
+      <div class="weekly-bar-track"><span class="weekly-bar-fill" style="height:${height}%"></span></div>
+      <span class="weekly-bar-day">${escapeHTML(weekday)}</span><span class="weekly-bar-date">${dayNumber}</span>
+    </div>`;
+  }).join("");
 }
 
 function renderHistory() {
   const selectedDate = $("#historyDate").value || getLocalDate();
 
+  // Lịch sử chỉ lưu các đơn giao thành công; ngày lọc là ngày hoàn thành.
   const orders = getOrders()
-    .filter((order) => order.date === selectedDate)
-    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    .filter((order) => order.status === "completed" && getCompletedDate(order) === selectedDate)
+    .sort((a, b) => new Date(b.completedAt || b.createdAt || 0) - new Date(a.completedAt || a.createdAt || 0));
 
   $("#historyList").innerHTML = orders
     .map((order) => buildOrderCard(order, true))
@@ -284,11 +370,24 @@ function renderAll() {
 }
 
 function changeTab(tabName) {
-  $$(".tab-content").forEach((element) => element.classList.remove("active"));
+  if (!document.getElementById(`${tabName}Tab`)) return;
+  const tabOrder = ["home", "stats", "history"];
+  const oldIndex = tabOrder.indexOf(activeTabName);
+  const newIndex = tabOrder.indexOf(tabName);
+  const direction = newIndex >= oldIndex ? "tab-enter-left" : "tab-enter-right";
+
+  $$(".tab-content").forEach((element) => {
+    element.classList.remove("active", "tab-enter-left", "tab-enter-right");
+  });
   $$(".nav-item").forEach((element) => element.classList.remove("active"));
 
-  $(`#${tabName}Tab`).classList.add("active");
-  $(`.nav-item[data-tab="${tabName}"]`).classList.add("active");
+  const panel = $(`#${tabName}Tab`);
+  if (!panel) return;
+  panel.classList.add("active", direction);
+  // Restart the entry animation even when the same tab is tapped again.
+  void panel.offsetWidth;
+  activeTabName = tabName;
+  $(`.nav-item[data-tab="${tabName}"]`)?.classList.add("active");
 
   // Nút thêm đơn chỉ xuất hiện ở tab Trang chủ.
   $("#headerAddButton").classList.toggle("hidden", tabName !== "home");
@@ -299,61 +398,39 @@ function changeTab(tabName) {
 
 function showOrderModal() {
   editingOrderId = null;
-  resetOrderForm();
+  $("#bulkForm").reset();
+  $("#bulkOrderText").value = "";
   $("#orderModalTitle").textContent = "Thêm đơn hàng";
-  $("#orderModalSubtitle").textContent = "Chọn cách nhập phù hợp";
-  $("#customerPhone").required = true;
-  $("#customerAddress").required = true;
-  $(".input-mode-tabs").classList.remove("hidden");
-  $("#bulkForm").classList.add("hidden");
-  $("#manualForm button[type=submit]").innerHTML = '<svg><use href="#i-plus"></use></svg> Lưu đơn hàng';
+  $("#orderModalSubtitle").textContent = "Dán nhiều đơn — mỗi dòng là một đơn hàng";
+  $("#saveBulkOrdersButton").innerHTML = '<svg><use href="#i-plus"></use></svg> Lưu tất cả đơn';
   $("#orderModal").classList.remove("hidden");
   document.body.style.overflow = "hidden";
-  setTimeout(() => $("#customerName").focus(), 150);
+  setTimeout(() => $("#bulkOrderText").focus(), 150);
 }
 
 function openEditOrder(order) {
   if (!order || order.status !== "pending") return;
   editingOrderId = order.id;
-  $("#manualForm").reset();
-  $("#customerName").value = order.customerName || "";
-  $("#customerPhone").value = order.phone || "";
-  $("#orderDetail").value = order.detail || "";
-  $("#customerAddress").value = order.address || "";
-  $("#orderNote").value = order.note || "";
-  $("#cashPayment").checked = order.paymentMethod === "cod";
-  $("#customerPhone").required = false;
-  $("#customerAddress").required = false;
-  $(".input-mode-tabs").classList.add("hidden");
-  $("#bulkForm").classList.add("hidden");
-  $("#manualForm").classList.remove("hidden");
+  // Reuse the single bulk textarea so the add modal never switches to a manual form.
+  $("#bulkOrderText").value = [
+    order.customerName || "",
+    order.detail || "",
+    order.phone || "",
+    order.address || "",
+    order.note || ""
+  ].join(" - ");
   $("#orderModalTitle").textContent = "Sửa đơn hàng";
-  $("#orderModalSubtitle").textContent = `Cập nhật thông tin đơn của ${order.customerName}`;
-  $("#manualForm button[type=submit]").innerHTML = 'Lưu thay đổi';
+  $("#orderModalSubtitle").textContent = `Sửa thông tin đơn của ${order.customerName}; chỉ nhập một dòng`;
+  $("#saveBulkOrdersButton").innerHTML = 'Lưu thay đổi';
   $("#orderModal").classList.remove("hidden");
   document.body.style.overflow = "hidden";
-  setTimeout(() => $("#customerName").focus(), 150);
+  setTimeout(() => $("#bulkOrderText").focus(), 150);
 }
 
 function closeOrderModal() {
   $("#orderModal").classList.add("hidden");
   document.body.style.overflow = "";
   editingOrderId = null;
-}
-
-function resetOrderForm() {
-  $("#manualForm").reset();
-  $("#bulkForm").reset();
-  setInputMode("manual");
-}
-
-function setInputMode(mode) {
-  $$(".input-mode").forEach((button) => {
-    button.classList.toggle("active", button.dataset.mode === mode);
-  });
-
-  $("#manualForm").classList.toggle("hidden", mode !== "manual");
-  $("#bulkForm").classList.toggle("hidden", mode !== "bulk");
 }
 
 function openConfirm({ title, message, type, onAccept, onPhoto }) {
@@ -440,9 +517,10 @@ function handleCardAction(event) {
       message: `Xác nhận đã giao thành công cho ${order.customerName}.`,
       type: "complete",
       onAccept: () => {
+        const completedAt = new Date().toISOString();
         updateOrder(id, {
           status: "completed",
-          completedAt: new Date().toISOString()
+          completedAt
         });
 
         showToast("Đơn hàng đã hoàn thành.");
@@ -451,6 +529,8 @@ function handleCardAction(event) {
         const input = $("#proofPhotoInput");
         input.dataset.orderId = id;
         input.dataset.completeAfterPhoto = "true";
+        // Capture the completion-confirmation time before the camera opens.
+        input.dataset.completionTimestamp = new Date().toISOString();
         input.value = "";
         input.click();
       }
@@ -474,79 +554,22 @@ function handleCardAction(event) {
   }
 }
 
-function addManualOrder(event) {
-  event.preventDefault();
-
-  const customerName = $("#customerName").value.trim();
-  const phone = $("#customerPhone").value.trim();
-  const detail = $("#orderDetail").value.trim();
-  const address = $("#customerAddress").value.trim();
-  const note = $("#orderNote").value.trim();
-
-  if (editingOrderId) {
-    if (!customerName || !detail) {
-      showToast("Vui lòng nhập ít nhất tên khách hàng và chi tiết đơn hàng.");
-      return;
-    }
-    const current = getOrders().find((order) => order.id === editingOrderId);
-    if (!current || current.status !== "pending") {
-      showToast("Chỉ có thể sửa đơn đang chờ giao.");
-      closeOrderModal();
-      return;
-    }
-    updateOrder(editingOrderId, {
-      customerName, phone: cleanPhone(phone), detail, address, note,
-      paymentMethod: $("#cashPayment").checked ? "cod" : "bank"
-    });
-    closeOrderModal();
-    showToast("Đã cập nhật đơn hàng.");
-    return;
-  }
-
-  if (!customerName || !phone || !detail || !address) {
-    showToast("Vui lòng nhập đầy đủ thông tin bắt buộc.");
-    return;
-  }
-
-  saveNewOrders([
-    createOrder({
-      customerName,
-      phone,
-      detail,
-      address,
-      note,
-      paymentMethod: $("#cashPayment").checked ? "cod" : "bank"
-    })
-  ]);
-
-  closeOrderModal();
-  showToast("Đã thêm đơn hàng.");
-}
-
 function addBulkOrders(event) {
   event.preventDefault();
 
   const rawText = $("#bulkOrderText").value.trim();
-
   if (!rawText) {
     showToast("Vui lòng nhập danh sách đơn hàng.");
     return;
   }
 
-  const lines = rawText.split("\n").map((line) => line.trim()).filter(Boolean);
-  const newOrders = [];
+  const lines = rawText.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+  const parsedOrders = [];
   let invalidLines = 0;
 
   lines.forEach((line) => {
-    // Chỉ tách theo dấu gạch ngang có khoảng trắng hai bên để tránh cắt nhầm
-    // dữ liệu như mã đơn hoặc nội dung có dấu gạch ngang liền nhau.
-    const parts = line.split(/\s*-\s*/).map((part) => part.trim());
-
-    if (parts.length < 2) {
-      invalidLines += 1;
-      return;
-    }
-
+    // Only split on a hyphen surrounded by spaces; lookarounds preserve empty optional fields.
+    const parts = line.split(/(?<=\s)-(?=\s|$)/).map((part) => part.trim());
     const customerName = parts[0] || "";
     const detail = parts[1] || "";
     const phone = parts[2] || "";
@@ -558,60 +581,52 @@ function addBulkOrders(event) {
       return;
     }
 
-    newOrders.push(
-      createOrder({
-        customerName,
-        detail,
-        phone,
-        address,
-        note,
-        paymentMethod: "bank"
-      })
-    );
+    parsedOrders.push({ customerName, detail, phone, address, note });
   });
 
-  if (!newOrders.length) {
+  if (editingOrderId) {
+    if (parsedOrders.length !== 1 || lines.length !== 1 || invalidLines > 0) {
+      showToast("Khi sửa đơn, vui lòng chỉ nhập đúng một dòng hợp lệ.");
+      return;
+    }
+
+    const existingOrders = getOrders();
+    const currentOrder = existingOrders.find((order) => order.id === editingOrderId);
+    if (!currentOrder || currentOrder.status !== "pending") {
+      showToast("Chỉ có thể sửa đơn đang chờ giao.");
+      closeOrderModal();
+      return;
+    }
+
+    const changes = parsedOrders[0];
+    saveOrders(existingOrders.map((order) => order.id === editingOrderId ? {
+      ...order,
+      customerName: changes.customerName,
+      detail: changes.detail,
+      phone: cleanPhone(changes.phone),
+      address: changes.address,
+      note: changes.note
+    } : order));
+    closeOrderModal();
+    renderAll();
+    showToast("Đã cập nhật đơn hàng.");
+    return;
+  }
+
+  if (!parsedOrders.length) {
     showToast("Không có dòng nào đúng định dạng.");
     return;
   }
 
+  const newOrders = parsedOrders.map((data) => createOrder({ ...data, paymentMethod: "bank" }));
   saveNewOrders(newOrders);
   closeOrderModal();
 
-  const message =
-    invalidLines > 0
-      ? `Đã thêm ${newOrders.length} đơn. Bỏ qua ${invalidLines} dòng lỗi.`
-      : `Đã thêm thành công ${newOrders.length} đơn hàng.`;
-
+  const message = invalidLines > 0
+    ? `Đã thêm ${newOrders.length} đơn. Bỏ qua ${invalidLines} dòng lỗi.`
+    : `Đã thêm thành công ${newOrders.length} đơn hàng.`;
   showToast(message);
 }
-
-function setupEnterNavigation() {
-  const fields = [
-    $("#customerName"),
-    $("#customerPhone"),
-    $("#orderDetail"),
-    $("#customerAddress"),
-    $("#orderNote")
-  ];
-
-  fields.forEach((field, index) => {
-    field.addEventListener("keydown", (event) => {
-      if (event.key !== "Enter" || event.shiftKey) return;
-
-      event.preventDefault();
-
-      const nextField = fields[index + 1];
-
-      if (nextField) {
-        nextField.focus();
-      } else {
-        $("#manualForm").requestSubmit();
-      }
-    });
-  });
-}
-
 
 function openProofLightbox(order) {
   if (!order || !order.proofImage) {
@@ -639,17 +654,6 @@ function safeFileName(value = "KhachHang") {
   return normalized.replace(/[^a-zA-Z0-9_-]+/g, "_").replace(/^_+|_+$/g, "") || "KhachHang";
 }
 
-function roundedRect(ctx, x, y, width, height, radius) {
-  const r = Math.min(radius, width / 2, height / 2);
-  ctx.beginPath();
-  ctx.moveTo(x + r, y);
-  ctx.arcTo(x + width, y, x + width, y + height, r);
-  ctx.arcTo(x + width, y + height, x, y + height, r);
-  ctx.arcTo(x, y + height, x, y, r);
-  ctx.arcTo(x, y, x + width, y, r);
-  ctx.closePath();
-}
-
 async function downloadBrandedProof() {
   const order = currentProofOrder;
   if (!order?.proofImage) {
@@ -664,98 +668,141 @@ async function downloadBrandedProof() {
       image.onerror = () => reject(new Error("Không thể đọc ảnh xác nhận."));
     });
 
+    // Canvas 2x-friendly high-resolution PNG with a crisp, square Ocean Blue frame.
     const maxWidth = 1800;
     const scale = Math.min(1, maxWidth / image.naturalWidth);
     const imageWidth = Math.max(1, Math.round(image.naturalWidth * scale));
     const imageHeight = Math.max(1, Math.round(image.naturalHeight * scale));
-    const pad = Math.max(24, Math.round(imageWidth * 0.025));
-    const headerHeight = Math.max(112, Math.round(imageWidth * 0.105));
-    const footerHeight = Math.max(96, Math.round(imageWidth * 0.09));
+    const border = Math.max(8, Math.round(imageWidth * 0.009));
+    const pad = Math.max(22, Math.round(imageWidth * 0.025));
+    const headerHeight = Math.max(148, Math.round(imageWidth * 0.17));
+    const footerHeight = Math.max(50, Math.round(imageWidth * 0.055));
     const canvas = document.createElement("canvas");
-    canvas.width = imageWidth + pad * 2;
-    canvas.height = imageHeight + headerHeight + footerHeight + pad * 2;
+    canvas.width = imageWidth + (pad + border) * 2;
+    canvas.height = imageHeight + headerHeight + footerHeight + (pad + border) * 2;
     const ctx = canvas.getContext("2d");
     if (!ctx) throw new Error("Thiết bị không hỗ trợ xuất ảnh.");
 
-    // Ocean-blue branded card and rounded outer frame.
-    const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
-    gradient.addColorStop(0, "#075985");
-    gradient.addColorStop(0.52, "#0284c7");
-    gradient.addColorStop(1, "#38bdf8");
-    roundedRect(ctx, 0, 0, canvas.width, canvas.height, Math.max(26, pad));
-    ctx.fillStyle = gradient;
-    ctx.fill();
+    const ocean = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+    ocean.addColorStop(0, "#075985");
+    ocean.addColorStop(0.55, "#0284c7");
+    ocean.addColorStop(1, "#38bdf8");
+    ctx.fillStyle = ocean;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    const innerX = pad;
-    const innerY = pad + headerHeight;
-    const innerW = imageWidth;
-    const innerH = imageHeight;
-    ctx.fillStyle = "#ffffff";
-    roundedRect(ctx, innerX, innerY, innerW, innerH, Math.max(12, pad * 0.45));
-    ctx.fill();
-    ctx.save();
-    roundedRect(ctx, innerX, innerY, innerW, innerH, Math.max(12, pad * 0.45));
-    ctx.clip();
-    ctx.drawImage(image, innerX, innerY, innerW, innerH);
-    ctx.restore();
+    // A narrow inner rule keeps all four corners perfectly square.
+    ctx.strokeStyle = "rgba(224,242,254,.72)";
+    ctx.lineWidth = Math.max(2, Math.round(border * 0.22));
+    ctx.strokeRect(border / 2, border / 2, canvas.width - border, canvas.height - border);
 
-    const left = pad + 6;
-    const usableWidth = canvas.width - pad * 2 - 12;
+    const imageX = pad + border;
+    const imageY = headerHeight + pad + border;
+    const whiteBand = ctx.createLinearGradient(0, border, canvas.width, headerHeight);
+    whiteBand.addColorStop(0, "rgba(7,89,133,.25)");
+    whiteBand.addColorStop(1, "rgba(255,255,255,.06)");
+    ctx.fillStyle = whiteBand;
+    ctx.fillRect(border, border, canvas.width - border * 2, headerHeight);
+
+    const left = imageX;
+    const usableWidth = canvas.width - imageX * 2;
     const name = String(order.customerName || "Khách hàng");
-    const phone = String(order.phone || "Chưa có số điện thoại");
-    const doneDate = order.completedAt
-      ? formatDate(getLocalDate(new Date(order.completedAt)))
-      : (order.proofImageAt ? formatDate(getLocalDate(new Date(order.proofImageAt))) : formatDate(order.date));
-    const headerTop = Math.max(28, Math.round(pad * 0.75));
-    ctx.fillStyle = "#ffffff";
-    ctx.textBaseline = "top";
-    ctx.textAlign = "left";
-    ctx.font = `800 ${Math.max(22, Math.round(imageWidth * 0.035))}px system-ui, -apple-system, Segoe UI, sans-serif`;
-    let customerLine = `${name}  ·  ${phone}`;
-    while (ctx.measureText(customerLine).width > usableWidth && ctx.font.match(/(\d+)px/)) {
-      const fontSize = Number(ctx.font.match(/(\d+)px/)[1]);
-      if (fontSize <= 16) break;
-      ctx.font = `800 ${fontSize - 2}px system-ui, -apple-system, Segoe UI, sans-serif`;
-    }
-    ctx.fillText(customerLine, left, headerTop, usableWidth);
-    ctx.font = `500 ${Math.max(15, Math.round(imageWidth * 0.018))}px system-ui, -apple-system, Segoe UI, sans-serif`;
-    ctx.fillStyle = "rgba(255,255,255,.9)";
-    ctx.fillText(`Ngày hoàn thành: ${doneDate}`, left, headerTop + Math.max(38, Math.round(imageWidth * 0.047)), usableWidth);
+    const address = String(order.address || "Chưa có địa chỉ giao hàng");
+    const formattedCompletionTime = formatCompletionTimestamp(order.completedAt);
+    const completionTimeText = formattedCompletionTime
+      ? `🕒 ${formattedCompletionTime}`
+      : "🕒 Chưa lưu mốc giờ hoàn thành";
 
-    const footerY = innerY + innerH + Math.max(18, Math.round(pad * 0.65));
     ctx.fillStyle = "#ffffff";
+    ctx.textAlign = "left";
+    ctx.textBaseline = "top";
+    let nameFontSize = Math.max(20, Math.round(imageWidth * 0.029));
+    ctx.font = `800 ${nameFontSize}px system-ui, -apple-system, Segoe UI, sans-serif`;
+    while (ctx.measureText(name).width > usableWidth && nameFontSize > 16) {
+      nameFontSize -= 2;
+      ctx.font = `800 ${nameFontSize}px system-ui, -apple-system, Segoe UI, sans-serif`;
+    }
+    const nameY = border + Math.max(14, Math.round(pad * 0.32));
+    ctx.fillText(name, left, nameY, usableWidth);
+
+    // Wrap the delivery address to at most two lines.
+    const addressFontSize = Math.max(14, Math.round(imageWidth * 0.017));
+    ctx.font = `500 ${addressFontSize}px system-ui, -apple-system, Segoe UI, sans-serif`;
+    ctx.fillStyle = "rgba(255,255,255,.94)";
+    const addressY = nameY + Math.round(nameFontSize * 1.25);
+    const addressLineHeight = Math.round(addressFontSize * 1.3);
+    const addressLines = [];
+    let line = "";
+    let addressOverflowed = false;
+    for (const word of address.split(/\s+/)) {
+      const trial = line ? `${line} ${word}` : word;
+      if (ctx.measureText(trial).width > usableWidth && line) {
+        addressLines.push(line);
+        line = word;
+        if (addressLines.length === 2) {
+          addressOverflowed = true;
+          break;
+        }
+      } else {
+        line = trial;
+      }
+    }
+    if (!addressOverflowed && line) addressLines.push(line);
+    if (addressOverflowed && addressLines.length) {
+      const lastIndex = addressLines.length - 1;
+      let lastLine = addressLines[lastIndex];
+      while (ctx.measureText(`${lastLine}…`).width > usableWidth && lastLine.length > 1) {
+        lastLine = lastLine.slice(0, -1);
+      }
+      addressLines[lastIndex] = `${lastLine}…`;
+    }
+    addressLines.slice(0, 2).forEach((text, index) => {
+      ctx.fillText(text, left, addressY + index * addressLineHeight, usableWidth);
+    });
+
+    const timeFontSize = Math.max(14, Math.round(imageWidth * 0.018));
+    ctx.font = `700 ${timeFontSize}px system-ui, -apple-system, Segoe UI, sans-serif`;
+    ctx.fillStyle = "#e0f2fe";
+    const timeY = addressY + Math.max(1, addressLines.length) * addressLineHeight + Math.max(7, Math.round(pad * 0.12));
+    let visibleTimeFontSize = timeFontSize;
+    while (ctx.measureText(completionTimeText).width > usableWidth && visibleTimeFontSize > 12) {
+      visibleTimeFontSize -= 1;
+      ctx.font = `700 ${visibleTimeFontSize}px system-ui, -apple-system, Segoe UI, sans-serif`;
+    }
+    ctx.fillText(completionTimeText, left, timeY, usableWidth);
+
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(imageX, imageY, imageWidth, imageHeight);
+    ctx.drawImage(image, imageX, imageY, imageWidth, imageHeight);
+
+    const footerY = imageY + imageHeight + pad;
+    ctx.strokeStyle = "rgba(224,242,254,.55)";
+    ctx.lineWidth = Math.max(1, Math.round(border * 0.18));
+    ctx.beginPath();
+    ctx.moveTo(imageX, footerY - Math.max(7, Math.round(pad * 0.28)));
+    ctx.lineTo(imageX + imageWidth, footerY - Math.max(7, Math.round(pad * 0.28)));
+    ctx.stroke();
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.font = `700 ${Math.max(17, Math.round(imageWidth * 0.022))}px system-ui, -apple-system, Segoe UI, sans-serif`;
-    ctx.fillText("Tom Shipper by Duy Hoang Network", canvas.width / 2, footerY + footerHeight * 0.36, canvas.width - pad * 2);
-    ctx.font = `500 ${Math.max(13, Math.round(imageWidth * 0.015))}px system-ui, -apple-system, Segoe UI, sans-serif`;
-    ctx.fillStyle = "rgba(255,255,255,.9)";
-    ctx.fillText("BẰNG CHỨNG GIAO HÀNG", canvas.width / 2, footerY + footerHeight * 0.70, canvas.width - pad * 2);
+    ctx.font = `500 ${Math.max(12, Math.round(imageWidth * 0.014))}px system-ui, -apple-system, Segoe UI, sans-serif`;
+    ctx.fillStyle = "rgba(255,255,255,.93)";
+    ctx.fillText("Tom Shipper by Duy Hoang Network", canvas.width / 2, footerY + footerHeight / 2, imageWidth);
 
     const blob = await new Promise((resolve, reject) => canvas.toBlob((value) => value ? resolve(value) : reject(new Error("Không thể xuất PNG.")), "image/png"));
     const fileName = `XacNhan_Don_${safeFileName(name)}.png`;
     const imageFile = new File([blob], fileName, { type: "image/png", lastModified: Date.now() });
 
-    // Trên iOS/Android, mở bảng chia sẻ hệ thống để shipper có thể chọn
-    // Lưu hình ảnh / Save Image hoặc Photos/Gallery nếu ứng dụng đích hỗ trợ.
-    // Web Share không thể tự ép hệ điều hành lưu thẳng vào thư viện ảnh.
+    // Hệ điều hành sẽ cho chọn Photos/Gallery hoặc ứng dụng đích; không thể ép trình duyệt tự ghi vào thư viện ảnh.
     if (navigator.share && navigator.canShare && navigator.canShare({ files: [imageFile] })) {
       try {
-        await navigator.share({
-          files: [imageFile],
-          title: "Ảnh xác thực giao hàng",
-          text: `Xác nhận giao hàng · ${name}`
-        });
-        showToast("Đã lưu ảnh xác thực vào thiết bị!");
+        await navigator.share({ files: [imageFile], title: "Ảnh xác thực giao hàng", text: `Ảnh xác nhận giao hàng · ${name} · ${formattedCompletionTime || "Chưa lưu mốc giờ"}` });
+        showToast("Đã chia sẻ ảnh xác thực. Chọn Lưu hình ảnh nếu được hỗ trợ.");
         return;
       } catch (shareError) {
-        // Người dùng chủ động đóng bảng chia sẻ thì không tự tải file ngoài ý muốn.
+        // Khi người dùng tự hủy bảng chia sẻ, không tải file thứ hai ngoài ý muốn.
         if (shareError && shareError.name === "AbortError") return;
-        // Nếu chia sẻ không khả dụng/lỗi, tiếp tục với phương án tải xuống.
       }
     }
 
-    // Fallback cho desktop hoặc trình duyệt không hỗ trợ chia sẻ tệp.
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
@@ -765,7 +812,7 @@ async function downloadBrandedProof() {
     link.click();
     link.remove();
     window.setTimeout(() => URL.revokeObjectURL(url), 3000);
-    showToast("Đã lưu ảnh xác thực vào thiết bị!");
+    showToast("Đã tạo ảnh PNG để lưu vào thiết bị.");
   } catch (error) {
     showToast(error.message || "Không thể lưu ảnh xác thực.");
   }
@@ -805,9 +852,19 @@ async function handleProofPhotoSelected(event) {
   const input = event.currentTarget;
   const file = input.files && input.files[0];
   const orderId = input.dataset.orderId;
-  if (!file || !orderId) return;
+  const requestedCompletionTimestamp = input.dataset.completionTimestamp;
+  if (!file || !orderId) {
+    delete input.dataset.orderId;
+    delete input.dataset.completeAfterPhoto;
+    delete input.dataset.completionTimestamp;
+    return;
+  }
   if (!file.type.startsWith("image/")) {
     showToast("Vui lòng chọn một tệp hình ảnh.");
+    delete input.dataset.orderId;
+    delete input.dataset.completeAfterPhoto;
+    delete input.dataset.completionTimestamp;
+    input.value = "";
     return;
   }
 
@@ -825,7 +882,7 @@ async function handleProofPhotoSelected(event) {
     const completeAfterPhoto = input.dataset.completeAfterPhoto === "true";
     if (completeAfterPhoto) {
       orders[index].status = "completed";
-      orders[index].completedAt = new Date().toISOString();
+      orders[index].completedAt = requestedCompletionTimestamp || new Date().toISOString();
     }
     try {
       saveOrders(orders);
@@ -841,7 +898,35 @@ async function handleProofPhotoSelected(event) {
     input.value = "";
     delete input.dataset.orderId;
     delete input.dataset.completeAfterPhoto;
+    delete input.dataset.completionTimestamp;
   }
+}
+
+function applyTheme(theme, persist = true) {
+  const isDark = theme === "dark";
+  document.body.classList.toggle("dark-mode", isDark);
+  const toggle = $("#themeToggle");
+  if (toggle) {
+    toggle.textContent = isDark ? "☀️" : "🌙";
+    toggle.setAttribute("aria-label", isDark ? "Chuyển sang chế độ sáng" : "Chuyển sang chế độ tối");
+    toggle.setAttribute("aria-pressed", String(isDark));
+    toggle.title = isDark ? "Chuyển sang chế độ sáng" : "Chuyển sang chế độ tối";
+  }
+  const themeColor = document.querySelector('meta[name="theme-color"]');
+  if (themeColor) themeColor.setAttribute("content", isDark ? "#0f172a" : "#0284c7");
+  if (persist) {
+    try { localStorage.setItem(THEME_STORAGE_KEY, isDark ? "dark" : "light"); } catch {}
+  }
+}
+
+function initializeTheme() {
+  let savedTheme = "light";
+  try { savedTheme = localStorage.getItem(THEME_STORAGE_KEY) || "light"; } catch {}
+  applyTheme(savedTheme === "dark" ? "dark" : "light", false);
+}
+
+function toggleTheme() {
+  applyTheme(document.body.classList.contains("dark-mode") ? "light" : "dark");
 }
 
 function initEvents() {
@@ -866,14 +951,17 @@ function initEvents() {
     if (event.target === $("#orderModal")) closeOrderModal();
   });
 
-  $$(".input-mode").forEach((button) => {
-    button.addEventListener("click", () => setInputMode(button.dataset.mode));
-  });
-
-  $("#manualForm").addEventListener("submit", addManualOrder);
   $("#bulkForm").addEventListener("submit", addBulkOrders);
+  $("#themeToggle").addEventListener("click", toggleTheme);
 
   $("#historyDate").addEventListener("change", renderHistory);
+  $$(".stats-view-button").forEach((button) => {
+    button.addEventListener("click", () => {
+      statsView = button.dataset.statsView;
+      renderStats();
+    });
+  });
+  $("#statsWeekDate").addEventListener("change", renderStats);
 
   $("#orderList").addEventListener("click", handleCardAction);
   $("#historyList").addEventListener("click", handleCardAction);
@@ -937,10 +1025,10 @@ function initEvents() {
     });
   });
 
-  setupEnterNavigation();
 }
 
 function initializeApp() {
+  initializeTheme();
   cleanOldOrders();
   $("#historyDate").value = getLocalDate();
 
@@ -950,6 +1038,7 @@ function initializeApp() {
   const splash = $("#splashScreen");
   window.setTimeout(() => {
     splash?.classList.add("splash-hidden");
+    document.body.classList.add("app-ready");
     window.setTimeout(() => splash?.remove(), 450);
   }, 1700);
 }
