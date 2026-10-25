@@ -397,9 +397,12 @@ function changeTab(tabName) {
 }
 
 function showOrderModal() {
+  // Thêm đơn luôn mở duy nhất giao diện nhập hàng loạt.
   editingOrderId = null;
   $("#bulkForm").reset();
   $("#bulkOrderText").value = "";
+  $("#bulkForm").classList.remove("hidden");
+  $("#manualForm").classList.add("hidden");
   $("#orderModalTitle").textContent = "Thêm đơn hàng";
   $("#orderModalSubtitle").textContent = "Dán nhiều đơn — mỗi dòng là một đơn hàng";
   $("#saveBulkOrdersButton").innerHTML = '<svg><use href="#i-plus"></use></svg> Lưu tất cả đơn';
@@ -411,26 +414,34 @@ function showOrderModal() {
 function openEditOrder(order) {
   if (!order || order.status !== "pending") return;
   editingOrderId = order.id;
-  // Reuse the single bulk textarea so the add modal never switches to a manual form.
-  $("#bulkOrderText").value = [
-    order.customerName || "",
-    order.detail || "",
-    order.phone || "",
-    order.address || "",
-    order.note || ""
-  ].join(" - ");
+
+  // Giữ nguyên form sửa đơn từng trường như phiên bản cũ; không dùng textarea nhập nhiều đơn.
+  $("#manualForm").reset();
+  $("#customerName").value = order.customerName || "";
+  $("#customerPhone").value = order.phone || "";
+  $("#orderDetail").value = order.detail || "";
+  $("#customerAddress").value = order.address || "";
+  $("#orderNote").value = order.note || "";
+  $("#cashPayment").checked = order.paymentMethod === "cod";
+  $("#customerPhone").required = false;
+  $("#customerAddress").required = false;
+
+  $("#bulkForm").classList.add("hidden");
+  $("#manualForm").classList.remove("hidden");
   $("#orderModalTitle").textContent = "Sửa đơn hàng";
-  $("#orderModalSubtitle").textContent = `Sửa thông tin đơn của ${order.customerName}; chỉ nhập một dòng`;
-  $("#saveBulkOrdersButton").innerHTML = 'Lưu thay đổi';
+  $("#orderModalSubtitle").textContent = `Cập nhật thông tin đơn của ${order.customerName}`;
   $("#orderModal").classList.remove("hidden");
   document.body.style.overflow = "hidden";
-  setTimeout(() => $("#bulkOrderText").focus(), 150);
+  setTimeout(() => $("#customerName").focus(), 150);
 }
 
 function closeOrderModal() {
   $("#orderModal").classList.add("hidden");
   document.body.style.overflow = "";
   editingOrderId = null;
+  // Reset modal về trạng thái nhập hàng loạt cho lần thêm đơn tiếp theo.
+  $("#manualForm").classList.add("hidden");
+  $("#bulkForm").classList.remove("hidden");
 }
 
 function openConfirm({ title, message, type, onAccept, onPhoto }) {
@@ -554,6 +565,44 @@ function handleCardAction(event) {
   }
 }
 
+function addManualOrder(event) {
+  event.preventDefault();
+
+  const customerName = $("#customerName").value.trim();
+  const phone = $("#customerPhone").value.trim();
+  const detail = $("#orderDetail").value.trim();
+  const address = $("#customerAddress").value.trim();
+  const note = $("#orderNote").value.trim();
+
+  if (!editingOrderId) {
+    showToast("Form này chỉ dùng để sửa đơn đang chờ giao.");
+    return;
+  }
+
+  if (!customerName || !detail) {
+    showToast("Vui lòng nhập ít nhất tên khách hàng và chi tiết đơn hàng.");
+    return;
+  }
+
+  const current = getOrders().find((order) => order.id === editingOrderId);
+  if (!current || current.status !== "pending") {
+    showToast("Chỉ có thể sửa đơn đang chờ giao.");
+    closeOrderModal();
+    return;
+  }
+
+  updateOrder(editingOrderId, {
+    customerName,
+    phone: cleanPhone(phone),
+    detail,
+    address,
+    note,
+    paymentMethod: $("#cashPayment").checked ? "cod" : "bank"
+  });
+  closeOrderModal();
+  showToast("Đã cập nhật đơn hàng.");
+}
+
 function addBulkOrders(event) {
   event.preventDefault();
 
@@ -568,7 +617,7 @@ function addBulkOrders(event) {
   let invalidLines = 0;
 
   lines.forEach((line) => {
-    // Only split on a hyphen surrounded by spaces; lookarounds preserve empty optional fields.
+    // Giữ lại trường trống, ví dụ: Tên - Đơn hàng - - Địa chỉ - Ghi chú.
     const parts = line.split(/(?<=\s)-(?=\s|$)/).map((part) => part.trim());
     const customerName = parts[0] || "";
     const detail = parts[1] || "";
@@ -583,35 +632,6 @@ function addBulkOrders(event) {
 
     parsedOrders.push({ customerName, detail, phone, address, note });
   });
-
-  if (editingOrderId) {
-    if (parsedOrders.length !== 1 || lines.length !== 1 || invalidLines > 0) {
-      showToast("Khi sửa đơn, vui lòng chỉ nhập đúng một dòng hợp lệ.");
-      return;
-    }
-
-    const existingOrders = getOrders();
-    const currentOrder = existingOrders.find((order) => order.id === editingOrderId);
-    if (!currentOrder || currentOrder.status !== "pending") {
-      showToast("Chỉ có thể sửa đơn đang chờ giao.");
-      closeOrderModal();
-      return;
-    }
-
-    const changes = parsedOrders[0];
-    saveOrders(existingOrders.map((order) => order.id === editingOrderId ? {
-      ...order,
-      customerName: changes.customerName,
-      detail: changes.detail,
-      phone: cleanPhone(changes.phone),
-      address: changes.address,
-      note: changes.note
-    } : order));
-    closeOrderModal();
-    renderAll();
-    showToast("Đã cập nhật đơn hàng.");
-    return;
-  }
 
   if (!parsedOrders.length) {
     showToast("Không có dòng nào đúng định dạng.");
@@ -952,6 +972,7 @@ function initEvents() {
   });
 
   $("#bulkForm").addEventListener("submit", addBulkOrders);
+  $("#manualForm").addEventListener("submit", addManualOrder);
   $("#themeToggle").addEventListener("click", toggleTheme);
 
   $("#historyDate").addEventListener("change", renderHistory);
