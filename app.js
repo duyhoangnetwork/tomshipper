@@ -7,6 +7,7 @@ let pendingPhotoConfirmAction = null;
 let editingOrderId = null;
 let currentProofOrder = null;
 let statsView = "day";
+let historyExportScope = "day";
 let activeTabName = "home";
 
 const $ = (selector) => document.querySelector(selector);
@@ -360,6 +361,43 @@ function renderHistory() {
     .join("");
 
   $("#historyEmpty").classList.toggle("hidden", orders.length > 0);
+  updateHistoryExportControls();
+}
+
+function getHistoryExportSelection() {
+  const selectedDate = $("#historyDate").value || getLocalDate();
+  const range = historyExportScope === "week" ? getWeekRange(selectedDate) : null;
+  const inRange = (dateString) => historyExportScope === "day"
+    ? dateString === selectedDate
+    : dateString >= range.start && dateString <= range.end;
+  const orders = getOrders()
+    .filter((order) => order.status === "completed" && inRange(getCompletedDate(order)))
+    .sort((a, b) => new Date(b.completedAt || b.createdAt || 0) - new Date(a.completedAt || a.createdAt || 0));
+
+  const periodLabel = historyExportScope === "day"
+    ? `Theo ngày: ${formatDate(selectedDate)}`
+    : `Theo tuần: ${formatDate(range.start)} – ${formatDate(range.end)}`;
+  const fileRange = historyExportScope === "day"
+    ? selectedDate
+    : `${range.start}_${range.end}`;
+
+  return { orders, selectedDate, range, periodLabel, fileRange };
+}
+
+function updateHistoryExportControls() {
+  const countElement = $("#historyExportCount");
+  const summaryElement = $("#historyExportSummary");
+  if (!countElement || !summaryElement) return;
+
+  const selection = getHistoryExportSelection();
+  countElement.textContent = `${selection.orders.length} đơn`;
+  summaryElement.textContent = `${selection.periodLabel}. Số đơn hoàn thành sẽ xuất: ${selection.orders.length}. Mỗi đơn theo mẫu: Tên khách - Đơn hàng - Địa chỉ - Số điện thoại - Ghi chú.`;
+
+  $$("[data-export-scope]").forEach((button) => {
+    const active = button.dataset.exportScope === historyExportScope;
+    button.classList.toggle("active", active);
+    button.setAttribute("aria-pressed", String(active));
+  });
 }
 
 function renderAll() {
@@ -621,8 +659,9 @@ function addBulkOrders(event) {
     const parts = line.split(/(?<=\s)-(?=\s|$)/).map((part) => part.trim());
     const customerName = parts[0] || "";
     const detail = parts[1] || "";
-    const phone = parts[2] || "";
-    const address = parts[3] || "";
+    // Định dạng thêm đơn chuẩn: Tên khách - Đơn hàng - Địa chỉ - Số điện thoại - Ghi chú.
+    const address = parts[2] || "";
+    const phone = parts[3] || "";
     const note = parts.slice(4).join(" - ").trim();
 
     if (!customerName || !detail) {
@@ -922,6 +961,308 @@ async function handleProofPhotoSelected(event) {
   }
 }
 
+function normalizeExportField(value = "") {
+  return String(value ?? "").replace(/[\r\n\t]+/g, " ").replace(/\s{2,}/g, " ").trim();
+}
+
+function formatExportDateTime(date = new Date()) {
+  const pad = (value) => String(value).padStart(2, "0");
+  return `${pad(date.getDate())}/${pad(date.getMonth() + 1)}/${date.getFullYear()} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
+function formatOrderForExport(order) {
+  // Thứ tự cố định theo mẫu nhập đơn. Bỏ các trường trống ở cuối để
+  // đơn chỉ có Tên + Đơn hàng không bị thêm dấu "-" thừa phía sau.
+  const fields = [order.customerName, order.detail, order.address, order.phone, order.note]
+    .map(normalizeExportField);
+  while (fields.length && !fields[fields.length - 1]) fields.pop();
+  return fields.join(" - ");
+}
+
+function buildHistoryText(selection) {
+  const orderLines = selection.orders.map(formatOrderForExport);
+  return [
+    "TOM SHIPPER",
+    `Ngày giờ xuất: ${selection.exportedAt || formatExportDateTime()}`,
+    `Tổng đơn: ${selection.orders.length}`,
+    "",
+    ...orderLines
+  ].join("\r\n");
+}
+
+function wrapCanvasText(context, text, maxWidth) {
+  const words = String(text || " ").split(/\s+/).filter(Boolean);
+  const lines = [];
+  let currentLine = "";
+
+  for (const word of words) {
+    if (context.measureText(word).width > maxWidth) {
+      if (currentLine) {
+        lines.push(currentLine);
+        currentLine = "";
+      }
+      let chunk = "";
+      for (const character of word) {
+        const candidate = chunk + character;
+        if (context.measureText(candidate).width > maxWidth && chunk) {
+          lines.push(chunk);
+          chunk = character;
+        } else {
+          chunk = candidate;
+        }
+      }
+      currentLine = chunk;
+      continue;
+    }
+
+    const candidate = currentLine ? `${currentLine} ${word}` : word;
+    if (context.measureText(candidate).width > maxWidth && currentLine) {
+      lines.push(currentLine);
+      currentLine = word;
+    } else {
+      currentLine = candidate;
+    }
+  }
+
+  if (currentLine || !lines.length) lines.push(currentLine);
+  return lines;
+}
+
+async function createHistoryPdfPages(selection) {
+  const PAGE_WIDTH = 1240;
+  const PAGE_HEIGHT = 1754;
+  const LEFT = 76;
+  const RIGHT = PAGE_WIDTH - 76;
+  const MAX_WIDTH = RIGHT - LEFT;
+  const BODY_BOTTOM = 1620;
+  const LINE_HEIGHT = 34;
+  const pages = [];
+
+  function createPage() {
+    const canvas = document.createElement("canvas");
+    canvas.width = PAGE_WIDTH;
+    canvas.height = PAGE_HEIGHT;
+    const context = canvas.getContext("2d");
+    if (!context) throw new Error("Thiết bị không hỗ trợ tạo PDF.");
+
+    context.fillStyle = "#ffffff";
+    context.fillRect(0, 0, PAGE_WIDTH, PAGE_HEIGHT);
+    const headerGradient = context.createLinearGradient(0, 0, PAGE_WIDTH, 180);
+    headerGradient.addColorStop(0, "#082f49");
+    headerGradient.addColorStop(0.58, "#0369a1");
+    headerGradient.addColorStop(1, "#0ea5e9");
+    context.fillStyle = headerGradient;
+    context.fillRect(0, 0, PAGE_WIDTH, 195);
+
+    context.textBaseline = "top";
+    context.textAlign = "left";
+    context.fillStyle = "#ffffff";
+    context.font = "800 42px system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif";
+    context.fillText("TOM SHIPPER", LEFT, 39, MAX_WIDTH);
+    context.font = "500 22px system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif";
+    context.fillStyle = "rgba(255,255,255,.94)";
+    context.fillText(`Ngày giờ xuất: ${selection.exportedAt || formatExportDateTime()}`, LEFT, 100, MAX_WIDTH);
+    context.font = "700 21px system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif";
+    context.fillText(`Tổng đơn: ${selection.orders.length}`, LEFT, 139, MAX_WIDTH);
+
+    // Kết thúc phần tiêu đề, danh sách đơn bắt đầu ngay bên dưới.
+    context.strokeStyle = "#dbeafe";
+    context.lineWidth = 2;
+    context.beginPath();
+    context.moveTo(LEFT, 224);
+    context.lineTo(RIGHT, 224);
+    context.stroke();
+
+    const page = { canvas, context, y: 250 };
+    pages.push(page);
+    return page;
+  }
+
+  let page = createPage();
+  for (let index = 0; index < selection.orders.length; index += 1) {
+    const text = formatOrderForExport(selection.orders[index]);
+    page.context.font = "500 23px system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif";
+    const lines = wrapCanvasText(page.context, text, MAX_WIDTH);
+    page.context.fillStyle = "#0f172a";
+
+    for (const line of lines) {
+      if (page.y + LINE_HEIGHT > BODY_BOTTOM) {
+        page = createPage();
+        page.context.font = "500 23px system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif";
+        page.context.fillStyle = "#0f172a";
+      }
+      page.context.fillText(line, LEFT, page.y, MAX_WIDTH);
+      page.y += LINE_HEIGHT;
+    }
+
+    page.y += 12;
+    if (page.y + 15 < BODY_BOTTOM) {
+      page.context.strokeStyle = "#e2e8f0";
+      page.context.lineWidth = 1;
+      page.context.beginPath();
+      page.context.moveTo(LEFT, page.y - 3);
+      page.context.lineTo(RIGHT, page.y - 3);
+      page.context.stroke();
+    }
+    page.y += 12;
+  }
+
+  // Footer is applied after pagination so the page count is accurate.
+  pages.forEach((item, index) => {
+    const context = item.context;
+    context.strokeStyle = "#bae6fd";
+    context.lineWidth = 2;
+    context.beginPath();
+    context.moveTo(LEFT, 1672);
+    context.lineTo(RIGHT, 1672);
+    context.stroke();
+    context.font = "500 17px system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif";
+    context.fillStyle = "#64748b";
+    context.textBaseline = "middle";
+    context.textAlign = "left";
+    context.fillText("Tom Shipper by Duy Hoang Network", LEFT, 1704, MAX_WIDTH * 0.72);
+    context.textAlign = "right";
+    context.fillText(`Trang ${index + 1}/${pages.length}`, RIGHT, 1704, MAX_WIDTH * 0.25);
+  });
+
+  const images = [];
+  for (const item of pages) {
+    const blob = await new Promise((resolve, reject) => {
+      item.canvas.toBlob((value) => value ? resolve(value) : reject(new Error("Không thể kết xuất trang PDF.")), "image/jpeg", 0.92);
+    });
+    images.push({ bytes: new Uint8Array(await blob.arrayBuffer()), width: item.canvas.width, height: item.canvas.height });
+  }
+  return images;
+}
+
+function buildPdfBlobFromJpegs(jpegPages) {
+  if (!jpegPages.length) throw new Error("Không có trang để xuất PDF.");
+  const encoder = new TextEncoder();
+  const chunks = [];
+  const offsets = [];
+  let length = 0;
+  const write = (part) => {
+    const bytes = typeof part === "string" ? encoder.encode(part) : part;
+    chunks.push(bytes);
+    length += bytes.length;
+  };
+  const beginObject = (objectNumber) => {
+    offsets[objectNumber] = length;
+    write(`${objectNumber} 0 obj\n`);
+  };
+  const endObject = () => write("\nendobj\n");
+
+  write("%PDF-1.4\n");
+  write(new Uint8Array([0x25, 0xe2, 0xe3, 0xcf, 0xd3, 0x0a]));
+  const objectCount = 2 + jpegPages.length * 3;
+  beginObject(1);
+  write("<< /Type /Catalog /Pages 2 0 R >>");
+  endObject();
+
+  const pageRefs = jpegPages.map((_, index) => `${3 + index * 3} 0 R`).join(" ");
+  beginObject(2);
+  write(`<< /Type /Pages /Kids [${pageRefs}] /Count ${jpegPages.length} >>`);
+  endObject();
+
+  jpegPages.forEach((page, index) => {
+    const pageObject = 3 + index * 3;
+    const contentObject = pageObject + 1;
+    const imageObject = pageObject + 2;
+    const contentBytes = encoder.encode("q\n595 0 0 842 0 0 cm\n/Im0 Do\nQ\n");
+
+    beginObject(pageObject);
+    write(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /XObject << /Im0 ${imageObject} 0 R >> >> /Contents ${contentObject} 0 R >>`);
+    endObject();
+
+    beginObject(contentObject);
+    write(`<< /Length ${contentBytes.length} >>\nstream\n`);
+    write(contentBytes);
+    write("endstream");
+    endObject();
+
+    beginObject(imageObject);
+    write(`<< /Type /XObject /Subtype /Image /Width ${page.width} /Height ${page.height} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${page.bytes.length} >>\nstream\n`);
+    write(page.bytes);
+    write("\nendstream");
+    endObject();
+  });
+
+  const xrefOffset = length;
+  write(`xref\n0 ${objectCount + 1}\n`);
+  write("0000000000 65535 f \n");
+  for (let objectNumber = 1; objectNumber <= objectCount; objectNumber += 1) {
+    write(`${String(offsets[objectNumber]).padStart(10, "0")} 00000 n \n`);
+  }
+  write(`trailer\n<< /Size ${objectCount + 1} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF\n`);
+  return new Blob(chunks, { type: "application/pdf" });
+}
+
+async function shareOrDownloadExportFile(blob, fileName, title, shareText) {
+  if (typeof File !== "undefined") {
+    const file = new File([blob], fileName, { type: blob.type, lastModified: Date.now() });
+    if (navigator.share && navigator.canShare) {
+      try {
+        if (navigator.canShare({ files: [file] })) {
+          await navigator.share({ files: [file], title, text: shareText });
+          showToast("Đã mở chia sẻ file. Chọn Lưu vào Tệp nếu muốn lưu trên thiết bị.");
+          return;
+        }
+      } catch (error) {
+        // Người dùng hủy bảng chia sẻ thì không tự tải thêm một bản trùng.
+        if (error && error.name === "AbortError") return;
+      }
+    }
+  }
+
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = fileName;
+  link.style.display = "none";
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 10000);
+  showToast(`Đã tạo file ${fileName.split(".").pop().toUpperCase()} để tải về.`);
+}
+
+async function exportHistory() {
+  const selection = getHistoryExportSelection();
+  selection.exportedAt = formatExportDateTime(new Date());
+  if (!selection.orders.length) {
+    showToast("Không có đơn hoàn thành trong phạm vi đã chọn để xuất.");
+    return;
+  }
+
+  const format = $("#historyExportFormat").value;
+  const safeRange = selection.fileRange.replace(/[^0-9_-]/g, "");
+  const fileName = `TomShipper_LichSu_${safeRange}.${format}`;
+  const summary = `${selection.periodLabel} · ${selection.orders.length} đơn hoàn thành`;
+
+  const exportButton = $("#exportHistoryButton");
+  const originalButtonContent = exportButton.innerHTML;
+  exportButton.disabled = true;
+  exportButton.textContent = "Đang tạo file…";
+
+  try {
+    let blob;
+    if (format === "pdf") {
+      const pages = await createHistoryPdfPages(selection);
+      blob = buildPdfBlobFromJpegs(pages);
+    } else {
+      // BOM giúp các ứng dụng trên iOS/Windows nhận đúng tiếng Việt UTF-8.
+      blob = new Blob(["\uFEFF", buildHistoryText(selection)], { type: "text/plain;charset=utf-8" });
+    }
+    await shareOrDownloadExportFile(blob, fileName, "Tom Shipper · Lịch sử đơn hàng", summary);
+  } catch (error) {
+    console.error("History export failed:", error);
+    showToast(error.message || "Không thể xuất lịch sử đơn hàng.");
+  } finally {
+    exportButton.disabled = false;
+    exportButton.innerHTML = originalButtonContent;
+  }
+}
+
 function applyTheme(theme, persist = true) {
   const isDark = theme === "dark";
   document.body.classList.toggle("dark-mode", isDark);
@@ -976,6 +1317,13 @@ function initEvents() {
   $("#themeToggle").addEventListener("click", toggleTheme);
 
   $("#historyDate").addEventListener("change", renderHistory);
+  $$("[data-export-scope]").forEach((button) => {
+    button.addEventListener("click", () => {
+      historyExportScope = button.dataset.exportScope === "week" ? "week" : "day";
+      updateHistoryExportControls();
+    });
+  });
+  $("#exportHistoryButton").addEventListener("click", exportHistory);
   $$(".stats-view-button").forEach((button) => {
     button.addEventListener("click", () => {
       statsView = button.dataset.statsView;
