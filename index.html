@@ -241,6 +241,45 @@
           Lưu tất cả đơn
         </button>
       </form>
+
+      <!-- Form nhập từng trường chỉ dùng khi SỬA đơn đang chờ giao. -->
+      <form id="manualForm" class="order-form hidden">
+        <label>
+          <span>Tên khách hàng</span>
+          <input id="customerName" type="text" placeholder="Ví dụ: Nguyễn Văn An" required />
+        </label>
+
+        <label>
+          <span>Số điện thoại</span>
+          <input id="customerPhone" type="tel" inputmode="tel" placeholder="0901234567" required />
+        </label>
+
+        <label>
+          <span>Chi tiết đơn hàng</span>
+          <textarea id="orderDetail" rows="2" placeholder="Ví dụ: 2 ly trà đào, 1 bánh mì" required></textarea>
+        </label>
+
+        <label>
+          <span>Địa chỉ giao hàng</span>
+          <textarea id="customerAddress" rows="2" placeholder="Số nhà, tên đường, phường/xã..." required></textarea>
+        </label>
+
+        <label>
+          <span>Ghi chú <em>(không bắt buộc)</em></span>
+          <textarea id="orderNote" rows="2" placeholder="Ví dụ: Gọi trước khi đến"></textarea>
+        </label>
+
+        <label class="cash-option">
+          <input id="cashPayment" type="checkbox" />
+          <span class="fake-checkbox"></span>
+          <span>
+            <strong>Khách trả tiền mặt</strong>
+            <small>Bỏ chọn nếu khách chuyển khoản</small>
+          </span>
+        </label>
+
+        <button type="submit" class="primary-button full-button">Lưu thay đổi</button>
+      </form>
     </section>
   </div>
 
@@ -270,6 +309,6 @@
 
   <div id="toast" class="toast hidden"></div>
 
-  <script src="app.js"></script>
+  <script src="script.js"></script>
 </body>
 </html>
