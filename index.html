@@ -178,6 +178,36 @@
         <input id="historyDate" type="date" />
       </label>
 
+      <section class="history-export-card" aria-label="Xuất lịch sử đơn hàng">
+        <div class="history-export-heading">
+          <div>
+            <h3>Xuất lịch sử đơn</h3>
+            <p>Chỉ xuất đơn đã hoàn thành theo ngày hoặc theo tuần.</p>
+          </div>
+          <span id="historyExportCount" class="history-export-count">0 đơn</span>
+        </div>
+
+        <div class="history-export-options">
+          <div class="history-export-scopes" role="group" aria-label="Phạm vi xuất">
+            <button class="history-export-scope active" type="button" data-export-scope="day" aria-pressed="true">Theo ngày</button>
+            <button class="history-export-scope" type="button" data-export-scope="week" aria-pressed="false">Theo tuần</button>
+          </div>
+          <label class="history-export-format">
+            <span>Định dạng file</span>
+            <select id="historyExportFormat">
+              <option value="txt">TXT (.txt)</option>
+              <option value="pdf">PDF (.pdf)</option>
+            </select>
+          </label>
+        </div>
+
+        <p id="historyExportSummary" class="history-export-summary">Đang xuất theo ngày được chọn.</p>
+        <button id="exportHistoryButton" class="primary-button full-button" type="button">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0 4-4m-4 4-4-4M4 17v3h16v-3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Xuất / Tải về
+        </button>
+      </section>
+
       <div id="historyList" class="order-list history-list"></div>
 
       <div id="historyEmpty" class="empty-state compact hidden">
@@ -225,14 +255,14 @@
           <textarea
             id="bulkOrderText"
             rows="9"
-            placeholder="Nguyễn Văn An - 2 ly trà đào - 0901234567 - 12 Nguyễn Huệ Q1 - Gọi trước&#10;Vy Cherry - 1 bò, 1 xá xíu - - Cổng chính - Giao gấp&#10;Trần Thị Mai - 1 phần cơm"
+            placeholder="Nguyễn Văn An - 2 ly trà đào - 12 Nguyễn Huệ Q1 - 0901234567 - Gọi trước&#10;Vy Cherry - 1 bò, 1 xá xíu - Cổng chính - - Giao gấp&#10;Trần Thị Mai - 1 phần cơm"
             required
           ></textarea>
         </label>
 
         <p class="bulk-guide">
           Mỗi dòng là một đơn theo mẫu:<br />
-          <b>Tên - Đơn hàng - Số điện thoại - Địa chỉ - Ghi chú</b><br />
+          <b>Tên khách - Đơn hàng - Địa chỉ - Số điện thoại - Ghi chú</b><br />
           Chỉ cần nhập Tên và Đơn hàng; các thông tin còn lại có thể để trống.
         </p>
 
@@ -309,6 +339,6 @@
 
   <div id="toast" class="toast hidden"></div>
 
-  <script src="app.js"></script>
+  <script src="script.js"></script>
 </body>
 </html>
