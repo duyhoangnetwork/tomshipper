@@ -1,1067 +1,1331 @@
-const STORAGE_KEY = "tom_shipper_orders_v2";
-const THEME_STORAGE_KEY = "tom_shipper_theme_v1";
-const MAX_STORAGE_DAYS = 180;
-
-let pendingConfirmAction = null;
-let pendingPhotoConfirmAction = null;
-let editingOrderId = null;
-let currentProofOrder = null;
-let statsView = "day";
-let activeTabName = "home";
-
-const $ = (selector) => document.querySelector(selector);
-const $$ = (selector) => [...document.querySelectorAll(selector)];
-
-function getLocalDate(date = new Date()) {
-  const offset = date.getTimezoneOffset() * 60000;
-  return new Date(date.getTime() - offset).toISOString().slice(0, 10);
+:root {
+  --ocean-950: #082f49;
+  --ocean-900: #0c4a6e;
+  --ocean-800: #075985;
+  --ocean-700: #0369a1;
+  --ocean-600: #0284c7;
+  --ocean-500: #0ea5e9;
+  --ocean-300: #7dd3fc;
+  --ocean-100: #e0f2fe;
+  --ocean-50: #f0f9ff;
+  --slate-900: #0f172a;
+  --slate-600: #475569;
+  --slate-500: #64748b;
+  --slate-200: #e2e8f0;
+  --nav-height: 78px;
 }
 
-function formatDate(dateString) {
-  return new Intl.DateTimeFormat("vi-VN", {
-    weekday: "short",
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric"
-  }).format(new Date(`${dateString}T00:00:00`));
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
 }
 
-function formatCompletionTimestamp(timestamp) {
-  if (!timestamp) return "";
-  const date = new Date(timestamp);
-  if (Number.isNaN(date.getTime())) return "";
-  const pad = (value) => String(value).padStart(2, "0");
-  return `${pad(date.getHours())}:${pad(date.getMinutes())} - ${pad(date.getDate())}/${pad(date.getMonth() + 1)}/${date.getFullYear()}`;
+html {
+  touch-action: manipulation;
 }
 
-function createId() {
-  return `${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+body {
+  min-width: 320px;
+  min-height: 100vh;
+  min-height: 100dvh;
+  margin: 0;
+  overflow-x: hidden;
+  color: var(--slate-900);
+  background: linear-gradient(180deg, #e0f2fe 0%, #f8fcff 36%, #f0f9ff 100%);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
-function escapeHTML(value = "") {
-  return String(value).replace(/[&<>"']/g, (character) => {
-    const entities = {
-      "&": "&amp;",
-      "<": "&lt;",
-      ">": "&gt;",
-      '"': "&quot;",
-      "'": "&#039;"
-    };
-
-    return entities[character];
-  });
+button,
+input,
+textarea {
+  font: inherit;
 }
 
-function cleanPhone(value = "") {
-  return String(value).replace(/[^\d+]/g, "");
+button {
+  touch-action: manipulation;
 }
 
-function getOrders() {
-  try {
-    const data = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
-    return Array.isArray(data) ? data : [];
-  } catch {
-    return [];
+svg {
+  width: 20px;
+  height: 20px;
+}
+
+.hidden {
+  display: none !important;
+}
+
+.app-shell {
+  width: 100%;
+  max-width: 680px;
+  min-height: 100vh;
+  min-height: 100dvh;
+  margin: 0 auto;
+  padding-bottom: calc(var(--nav-height) + 25px);
+}
+
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: max(22px, env(safe-area-inset-top)) 20px 26px;
+  color: white;
+  background:
+    radial-gradient(circle at 100% 0%, rgba(125, 211, 252, 0.35), transparent 36%),
+    linear-gradient(135deg, var(--ocean-950), var(--ocean-600));
+  border-radius: 0 0 30px 30px;
+  box-shadow: 0 10px 30px rgba(3, 105, 161, 0.23);
+}
+
+.app-header p {
+  margin: 0 0 3px;
+  color: var(--ocean-100);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.app-header h1 {
+  margin: 0;
+  font-size: 1.55rem;
+  font-weight: 850;
+}
+
+.header-add,
+.icon-button {
+  display: grid;
+  place-items: center;
+  border: 0;
+  cursor: pointer;
+}
+
+.header-add {
+  width: 45px;
+  height: 45px;
+  color: var(--ocean-800);
+  background: white;
+  border-radius: 15px;
+  box-shadow: 0 5px 15px rgba(8, 47, 73, 0.22);
+}
+
+.header-add svg {
+  width: 25px;
+  height: 25px;
+}
+
+.tab-content {
+  display: none;
+  padding: 22px 16px 5px;
+}
+
+.tab-content.active {
+  display: block;
+}
+
+.section-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.section-heading h2 {
+  margin: 0;
+  font-size: 1.22rem;
+  font-weight: 850;
+}
+
+.section-heading p {
+  margin: 4px 0 0;
+  color: var(--slate-500);
+  font-size: 0.77rem;
+}
+
+.count-badge {
+  padding: 6px 10px;
+  color: var(--ocean-800);
+  background: var(--ocean-100);
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+.order-list {
+  display: grid;
+  gap: 12px;
+}
+
+.order-card {
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid rgba(186, 230, 253, 0.9);
+  border-radius: 18px;
+  box-shadow: 0 5px 18px rgba(8, 47, 73, 0.06);
+}
+
+.order-card.completed {
+  border-color: #bbf7d0;
+}
+
+.order-card.cancelled {
+  opacity: 0.73;
+  border-color: #fecaca;
+}
+
+.order-main {
+  padding: 15px;
+}
+
+.customer-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.customer-name {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 850;
+  line-height: 1.25;
+}
+
+.customer-phone {
+  display: inline-block;
+  margin-top: 4px;
+  color: var(--ocean-700);
+  font-size: 0.81rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.status-badge {
+  flex: none;
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 0.67rem;
+  font-weight: 850;
+  white-space: nowrap;
+}
+
+.status-pending {
+  color: #a16207;
+  background: #fef3c7;
+}
+
+.status-completed {
+  color: #15803d;
+  background: #dcfce7;
+}
+
+.status-cancelled {
+  color: #b91c1c;
+  background: #fee2e2;
+}
+
+.completion-time {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 5px 9px;
+  color: #0f766e;
+  background: rgba(204, 251, 241, 0.52);
+  border: 1px solid rgba(153, 246, 228, 0.72);
+  border-radius: 8px;
+  font-size: 0.73rem;
+  font-weight: 750;
+  line-height: 1.35;
+}
+
+.completion-time > span:first-child {
+  flex: none;
+}
+
+.order-detail {
+  margin: 13px 0 10px;
+  color: #334155;
+  font-size: 0.91rem;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+.address-line,
+.note-line {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  margin-top: 7px;
+  color: var(--slate-500);
+  font-size: 0.79rem;
+  line-height: 1.4;
+}
+
+.address-line svg {
+  flex: none;
+  margin-top: 1px;
+  color: var(--ocean-600);
+}
+
+.note-line {
+  color: #8a5a00;
+}
+
+.payment-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 13px;
+  padding: 10px;
+  background: var(--ocean-50);
+  border-radius: 12px;
+}
+
+.payment-type {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--ocean-900);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.payment-type svg {
+  color: var(--ocean-600);
+}
+
+.payment-toggle {
+  border: 0;
+  padding: 7px 10px;
+  color: white;
+  background: var(--ocean-600);
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.69rem;
+  font-weight: 800;
+}
+
+.payment-toggle.cod {
+  background: #ea580c;
+}
+
+.quick-actions {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  border-top: 1px solid var(--slate-200);
+}
+
+.quick-action {
+  display: flex;
+  min-height: 62px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  border: 0;
+  border-right: 1px solid var(--slate-200);
+  color: var(--slate-600);
+  background: white;
+  cursor: pointer;
+  font-size: 0.66rem;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.quick-action:last-child {
+  border-right: 0;
+}
+
+.quick-action.call {
+  color: var(--ocean-700);
+}
+
+.quick-action.map {
+  color: #7c3aed;
+}
+
+.quick-action.complete {
+  color: #16a34a;
+}
+
+.quick-action.cancel {
+  color: #dc2626;
+}
+
+.empty-state {
+  display: flex;
+  min-height: 390px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 30px 20px;
+  text-align: center;
+}
+
+.empty-state.compact {
+  min-height: 280px;
+}
+
+.empty-icon {
+  display: grid;
+  width: 72px;
+  height: 72px;
+  place-items: center;
+  margin-bottom: 15px;
+  color: var(--ocean-600);
+  background: var(--ocean-100);
+  border-radius: 24px;
+}
+
+.empty-icon svg {
+  width: 35px;
+  height: 35px;
+}
+
+.empty-state h3 {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 850;
+}
+
+.empty-state p {
+  max-width: 260px;
+  margin: 7px 0 18px;
+  color: var(--slate-500);
+  font-size: 0.85rem;
+}
+
+.primary-button,
+.secondary-button,
+.danger-button {
+  display: inline-flex;
+  min-height: 46px;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border: 0;
+  border-radius: 12px;
+  padding: 0 16px;
+  cursor: pointer;
+  font-size: 0.88rem;
+  font-weight: 850;
+}
+
+.primary-button {
+  color: white;
+  background: linear-gradient(135deg, var(--ocean-700), var(--ocean-500));
+  box-shadow: 0 5px 13px rgba(2, 132, 199, 0.23);
+}
+
+.primary-button:active {
+  transform: scale(0.97);
+}
+
+.secondary-button {
+  color: var(--slate-600);
+  background: #f1f5f9;
+}
+
+.danger-button {
+  color: white;
+  background: #dc2626;
+}
+
+.full-button {
+  width: 100%;
+}
+
+.stats-list {
+  display: grid;
+  gap: 12px;
+}
+
+.stat-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid var(--ocean-100);
+  border-radius: 18px;
+  box-shadow: 0 5px 18px rgba(8, 47, 73, 0.05);
+}
+
+.stat-icon {
+  display: grid;
+  width: 46px;
+  height: 46px;
+  flex: none;
+  place-items: center;
+  border-radius: 15px;
+}
+
+.completed-stat .stat-icon {
+  color: #15803d;
+  background: #dcfce7;
+}
+
+.pending-stat .stat-icon {
+  color: var(--ocean-700);
+  background: var(--ocean-100);
+}
+
+.cancelled-stat .stat-icon {
+  color: #dc2626;
+  background: #fee2e2;
+}
+
+.stat-card p,
+.stat-card span {
+  margin: 0;
+  color: var(--slate-500);
+  font-size: 0.76rem;
+  font-weight: 650;
+}
+
+.stat-card strong {
+  display: inline-block;
+  margin: 2px 5px 0 0;
+  color: var(--slate-900);
+  font-size: 1.4rem;
+  font-weight: 900;
+}
+
+.stats-note {
+  margin: 15px 0 0;
+  padding: 12px;
+  color: var(--slate-500);
+  background: rgba(224, 242, 254, 0.7);
+  border-radius: 12px;
+  font-size: 0.76rem;
+  line-height: 1.45;
+}
+
+.date-filter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 11px 12px;
+  color: var(--slate-600);
+  background: white;
+  border: 1px solid #bae6fd;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.date-filter input {
+  border: 0;
+  color: var(--ocean-900);
+  outline: 0;
+  font-weight: 800;
+}
+
+.history-list {
+  margin-top: 15px;
+}
+
+.bottom-nav {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 30;
+  display: flex;
+  height: calc(var(--nav-height) + env(safe-area-inset-bottom));
+  padding-bottom: env(safe-area-inset-bottom);
+  background: rgba(255, 255, 255, 0.9);
+  border-top: 1px solid rgba(186, 230, 253, 0.9);
+  box-shadow: 0 -4px 18px rgba(8, 47, 73, 0.07);
+  backdrop-filter: blur(16px);
+}
+
+.nav-item {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  margin: 6px 5px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  border: 1px solid transparent;
+  border-radius: 15px;
+  color: #94a3b8;
+  background: transparent;
+  cursor: pointer;
+  font-size: 0.67rem;
+  font-weight: 800;
+  transition: color 180ms ease, background 180ms ease, border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+}
+
+.nav-item svg {
+  width: 23px;
+  height: 23px;
+}
+
+.nav-item.active {
+  color: var(--ocean-700);
+  background: #e0f2fe;
+  border-color: #bae6fd;
+  box-shadow: 0 2px 8px rgba(2, 132, 199, 0.12), inset 0 0 0 1px rgba(255, 255, 255, 0.75);
+}
+
+/* Popup luôn nổi ở trung tâm màn hình */
+.modal-backdrop {
+  position: fixed;
+  z-index: 100;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(8, 47, 73, 0.42);
+  backdrop-filter: blur(7px);
+  -webkit-backdrop-filter: blur(7px);
+}
+
+.modal-card,
+.confirm-card {
+  width: min(100%, 500px);
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
+  background: rgba(255, 255, 255, 0.97);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  border-radius: 24px;
+  box-shadow: 0 22px 55px rgba(8, 47, 73, 0.28);
+  animation: modal-in 0.2s ease-out;
+}
+
+.modal-card {
+  padding: 20px;
+}
+
+.modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.modal-header h2,
+.confirm-card h2 {
+  margin: 0;
+  font-size: 1.18rem;
+  font-weight: 900;
+}
+
+.modal-header p {
+  margin: 4px 0 0;
+  color: var(--slate-500);
+  font-size: 0.77rem;
+}
+
+.icon-button {
+  width: 38px;
+  height: 38px;
+  flex: none;
+  color: var(--slate-600);
+  background: #f1f5f9;
+  border-radius: 12px;
+}
+
+.input-mode-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  margin: 18px 0;
+  padding: 4px;
+  background: #e0f2fe;
+  border-radius: 12px;
+}
+
+.input-mode {
+  min-height: 38px;
+  border: 0;
+  color: var(--slate-500);
+  background: transparent;
+  border-radius: 9px;
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-weight: 850;
+}
+
+.input-mode.active {
+  color: var(--ocean-800);
+  background: white;
+  box-shadow: 0 2px 8px rgba(8, 47, 73, 0.1);
+}
+
+.order-form {
+  display: grid;
+  gap: 13px;
+}
+
+.order-form label > span {
+  display: block;
+  margin-bottom: 7px;
+  color: #334155;
+  font-size: 0.83rem;
+  font-weight: 850;
+}
+
+.order-form label em {
+  color: #94a3b8;
+  font-style: normal;
+  font-weight: 600;
+}
+
+.order-form input[type="text"],
+.order-form input[type="tel"],
+.order-form textarea {
+  width: 100%;
+  border: 1px solid #bae6fd;
+  color: var(--slate-900);
+  background: #fafdff;
+  border-radius: 12px;
+  outline: 0;
+  padding: 12px;
+  font-size: 0.93rem;
+  resize: vertical;
+}
+
+.order-form input:focus,
+.order-form textarea:focus {
+  border-color: var(--ocean-500);
+  box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.15);
+}
+
+.cash-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px;
+  cursor: pointer;
+  background: var(--ocean-50);
+  border: 1px solid var(--ocean-100);
+  border-radius: 12px;
+}
+
+.cash-option input {
+  position: absolute;
+  opacity: 0;
+}
+
+.cash-option .fake-checkbox {
+  position: relative;
+  width: 22px;
+  height: 22px;
+  flex: none;
+  margin: 0;
+  border: 2px solid #7dd3fc;
+  background: white;
+  border-radius: 7px;
+}
+
+.cash-option input:checked + .fake-checkbox {
+  border-color: var(--ocean-600);
+  background: var(--ocean-600);
+}
+
+.cash-option input:checked + .fake-checkbox::after {
+  position: absolute;
+  top: 3px;
+  left: 6px;
+  width: 6px;
+  height: 10px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  content: "";
+  transform: rotate(45deg);
+}
+
+.cash-option strong,
+.cash-option small {
+  display: block;
+}
+
+.cash-option strong {
+  color: var(--ocean-900);
+  font-size: 0.82rem;
+}
+
+.cash-option small {
+  margin-top: 1px;
+  color: var(--slate-500);
+  font-size: 0.71rem;
+}
+
+.bulk-guide {
+  margin: -4px 0 0;
+  color: var(--slate-500);
+  font-size: 0.75rem;
+  line-height: 1.55;
+}
+
+.bulk-guide b {
+  color: var(--ocean-800);
+}
+
+.confirm-card {
+  max-width: 350px;
+  padding: 24px 20px 19px;
+  text-align: center;
+}
+
+.confirm-icon {
+  display: grid;
+  width: 48px;
+  height: 48px;
+  place-items: center;
+  margin: 0 auto 12px;
+  color: #dc2626;
+  background: #fee2e2;
+  border-radius: 15px;
+}
+
+.confirm-card p {
+  margin: 8px 0 19px;
+  color: var(--slate-500);
+  font-size: 0.84rem;
+  line-height: 1.45;
+}
+
+.confirm-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 9px;
+}
+
+.toast {
+  position: fixed;
+  bottom: calc(var(--nav-height) + 22px);
+  left: 50%;
+  z-index: 150;
+  max-width: calc(100% - 32px);
+  padding: 11px 14px;
+  color: white;
+  background: var(--ocean-950);
+  border-radius: 12px;
+  box-shadow: 0 8px 22px rgba(8, 47, 73, 0.28);
+  font-size: 0.82rem;
+  font-weight: 750;
+  text-align: center;
+  transform: translateX(-50%);
+}
+
+@keyframes modal-in {
+  from {
+    opacity: 0;
+    transform: scale(0.94) translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
   }
 }
 
-function saveOrders(orders) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(orders));
-}
-
-function cleanOldOrders() {
-  const limitDate = new Date();
-  limitDate.setDate(limitDate.getDate() - MAX_STORAGE_DAYS);
-  limitDate.setHours(0, 0, 0, 0);
-
-  const validOrders = getOrders().filter((order) => {
-    return new Date(`${order.date}T00:00:00`) >= limitDate;
-  });
-
-  saveOrders(validOrders);
-}
-
-function saveNewOrders(newOrders) {
-  if (!newOrders.length) return;
-
-  const allOrders = getOrders();
-  allOrders.unshift(...newOrders);
-  saveOrders(allOrders);
-  renderAll();
-}
-
-function createOrder(data) {
-  return {
-    id: createId(),
-    customerName: data.customerName.trim(),
-    phone: cleanPhone(data.phone),
-    detail: data.detail.trim(),
-    address: data.address.trim(),
-    note: data.note.trim(),
-    paymentMethod: data.paymentMethod || "bank",
-    status: "pending",
-    date: getLocalDate(),
-    createdAt: new Date().toISOString(),
-    completedAt: null,
-    proofImage: null
-  };
-}
-
-function updateOrder(id, updates) {
-  const orders = getOrders().map((order) => {
-    return order.id === id ? { ...order, ...updates } : order;
-  });
-
-  saveOrders(orders);
-  renderAll();
-}
-
-function getStatus(status) {
-  const statuses = {
-    pending: {
-      label: "Đang giao",
-      className: "status-pending"
-    },
-    completed: {
-      label: "Hoàn thành",
-      className: "status-completed"
-    },
-    cancelled: {
-      label: "Đã hủy",
-      className: "status-cancelled"
-    }
-  };
-
-  return statuses[status] || statuses.pending;
-}
-
-function buildOrderCard(order, isHistory = false) {
-  const status = getStatus(order.status);
-  const isPending = order.status === "pending";
-  const isCash = order.paymentMethod === "cod";
-  const telUrl = `tel:${encodeURIComponent(order.phone)}`;
-  const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(order.address)}`;
-  const completionTimeLabel = order.status === "completed"
-    ? (formatCompletionTimestamp(order.completedAt) || "Chưa lưu mốc giờ")
-    : "";
-
-  return `
-    <article class="order-card ${order.status}">
-      <div class="order-main">
-        <div class="customer-row">
-          <div>
-            <h3 class="customer-name">${escapeHTML(order.customerName)}</h3>
-            <a class="customer-phone" href="${telUrl}">
-              📞 ${escapeHTML(order.phone || "Chưa có số điện thoại")}
-            </a>
-          </div>
-          <span class="status-badge ${status.className}">${status.label}</span>
-        </div>
-
-        ${order.status === "completed" ? `
-          <div class="completion-time" aria-label="Thời gian hoàn thành">
-            <span aria-hidden="true">🕒</span>
-            <span>Đã giao lúc: ${escapeHTML(completionTimeLabel)}</span>
-          </div>
-        ` : ""}
-
-        <p class="order-detail">${escapeHTML(order.detail)}</p>
-
-        <div class="address-line">
-          <svg><use href="#i-map"></use></svg>
-          <span>${escapeHTML(order.address)}</span>
-        </div>
-
-        ${
-          order.note
-            ? `
-              <div class="note-line">
-                <span>📝</span>
-                <span>${escapeHTML(order.note)}</span>
-              </div>
-            `
-            : ""
-        }
-
-        ${
-          order.proofImage
-            ? `
-              <button class="proof-thumbnail-button" type="button" data-action="view-proof" data-id="${order.id}" aria-label="Xem ảnh xác nhận giao hàng">
-                <img class="proof-thumbnail" src="${order.proofImage}" alt="Ảnh xác nhận giao hàng" />
-                <span>Ảnh xác nhận giao hàng · Nhấn để phóng to</span>
-              </button>
-            `
-            : ""
-        }
-
-        <div class="payment-row">
-          <div class="payment-type">
-            <svg><use href="#${isCash ? "i-card" : "i-bank"}"></use></svg>
-            <span>${isCash ? "Tiền mặt (COD)" : "Chuyển khoản (Bank)"}</span>
-          </div>
-
-          ${
-            isPending
-              ? `
-                <button
-                  class="payment-toggle ${isCash ? "cod" : ""}"
-                  data-action="toggle-payment"
-                  data-id="${order.id}"
-                >
-                  ${isCash ? "Đổi sang Bank" : "Khách trả tiền mặt"}
-                </button>
-              `
-              : ""
-          }
-        </div>
-        ${isPending ? `
-          <div class="order-edit-row">
-            <button class="edit-order-button" type="button" data-action="edit-order" data-id="${order.id}">✏️ Sửa đơn</button>
-          </div>
-        ` : ""}
-        ${isHistory ? `
-          <div class="history-card-actions">
-            <button class="delete-history-order" type="button" data-action="delete-order" data-id="${order.id}" aria-label="Xóa đơn hàng">🗑️ Xóa đơn này</button>
-          </div>
-        ` : ""}
-      </div>
-
-      ${
-        isPending && !isHistory
-          ? `
-            <div class="quick-actions">
-              <a class="quick-action call" href="${telUrl}">
-                <svg><use href="#i-phone"></use></svg>
-                <span>Gọi ngay</span>
-              </a>
-
-              <a class="quick-action map" href="${mapUrl}" target="_blank" rel="noopener">
-                <svg><use href="#i-map"></use></svg>
-                <span>Bản đồ</span>
-              </a>
-
-              <button class="quick-action complete" data-action="complete" data-id="${order.id}">
-                <svg><use href="#i-check"></use></svg>
-                <span>Hoàn thành</span>
-              </button>
-
-              <button class="quick-action cancel" data-action="cancel" data-id="${order.id}">
-                <svg><use href="#i-close"></use></svg>
-                <span>Hủy đơn</span>
-              </button>
-            </div>
-          `
-          : ""
-      }
-    </article>
-  `;
-}
-
-function renderHome() {
-  const today = getLocalDate();
-  const pendingOrders = getOrders().filter(
-    (order) => order.date === today && order.status === "pending"
-  );
-
-  $("#todayLabel").textContent = formatDate(today);
-  $("#pendingCountBadge").textContent = `${pendingOrders.length} đơn`;
-  $("#orderList").innerHTML = pendingOrders.map((order) => buildOrderCard(order)).join("");
-  $("#homeEmpty").classList.toggle("hidden", pendingOrders.length > 0);
-}
-
-function addDaysToLocalDate(dateString, dayOffset) {
-  const date = new Date(`${dateString}T12:00:00`);
-  date.setDate(date.getDate() + dayOffset);
-  return getLocalDate(date);
-}
-
-function getWeekRange(anchorDate) {
-  const date = new Date(`${anchorDate}T12:00:00`);
-  const day = date.getDay();
-  const mondayOffset = day === 0 ? -6 : 1 - day;
-  const start = addDaysToLocalDate(anchorDate, mondayOffset);
-  return { start, end: addDaysToLocalDate(start, 6) };
-}
-
-function getCompletedDate(order) {
-  if (order.completedAt) {
-    const parsed = new Date(order.completedAt);
-    if (!Number.isNaN(parsed.getTime())) return getLocalDate(parsed);
-  }
-  return order.date;
-}
-
-function renderStats() {
-  const today = getLocalDate();
-  const allOrders = getOrders();
-  const dayOrders = allOrders.filter((order) => order.date === today);
-  const dayCompleted = dayOrders.filter((order) => order.status === "completed").length;
-  const dayPending = dayOrders.filter((order) => order.status === "pending").length;
-  const dayCancelled = dayOrders.filter((order) => order.status === "cancelled").length;
-
-  $("#completedCount").textContent = dayCompleted;
-  $("#pendingCount").textContent = dayPending;
-  $("#cancelledCount").textContent = dayCancelled;
-
-  const isWeek = statsView === "week";
-  $("#statsDayView").classList.toggle("hidden", isWeek);
-  $("#statsWeekView").classList.toggle("hidden", !isWeek);
-  $("#weekFilterWrap").classList.toggle("hidden", !isWeek);
-  $("#statsHeading").textContent = isWeek ? "Thống kê theo tuần" : "Thống kê hôm nay";
-  $$(".stats-view-button").forEach((button) => {
-    const selected = button.dataset.statsView === statsView;
-    button.classList.toggle("active", selected);
-    button.setAttribute("aria-selected", String(selected));
-  });
-
-  if (!isWeek) {
-    $("#statsDateLabel").textContent = formatDate(today);
-    return;
+@media (min-width: 681px) {
+  .bottom-nav {
+    max-width: 680px;
+    margin: auto;
+    border-right: 1px solid #bae6fd;
+    border-left: 1px solid #bae6fd;
   }
 
-  if (!$("#statsWeekDate").value) $("#statsWeekDate").value = today;
-  const range = getWeekRange($("#statsWeekDate").value);
-  const dates = Array.from({ length: 7 }, (_, index) => addDaysToLocalDate(range.start, index));
-  const inRange = (dateString) => dateString >= range.start && dateString <= range.end;
-  const completedOrders = allOrders.filter((order) => order.status === "completed" && inRange(getCompletedDate(order)));
-  const pendingOrders = allOrders.filter((order) => order.status === "pending" && inRange(order.date));
-  const cancelledOrders = allOrders.filter((order) => order.status === "cancelled" && inRange(order.date));
+}
+/* Splash screen thương hiệu */
+.splash-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  color: #f8fafc;
+  background: radial-gradient(circle at 50% 38%, #164e63 0, #082f49 38%, #020617 100%);
+  opacity: 1;
+  visibility: visible;
+  transition: opacity .42s ease, visibility .42s ease;
+}
+.splash-screen.splash-hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+.splash-content { width: min(340px, 100%); text-align: center; animation: splash-rise .7s cubic-bezier(.2,.8,.2,1) both; }
+.splash-mark {
+  display: grid; place-items: center; width: 58px; height: 58px; margin: 0 auto 18px;
+  border: 1px solid rgba(186,230,253,.55); border-radius: 19px;
+  color: #fff; background: linear-gradient(145deg, rgba(56,189,248,.9), rgba(14,116,144,.45));
+  box-shadow: 0 12px 42px rgba(14,165,233,.24); font-size: 1.9rem; font-weight: 850; font-style: italic;
+}
+.splash-content h1 { margin: 0; font-size: clamp(2rem, 8vw, 2.65rem); letter-spacing: -.055em; font-weight: 850; }
+.splash-content p { margin: 7px 0 24px; color: #bae6fd; font-size: .83rem; letter-spacing: .12em; font-weight: 550; }
+.splash-loader { position: relative; overflow: hidden; width: 178px; height: 3px; margin: auto; border-radius: 99px; background: rgba(186,230,253,.17); }
+.splash-loader span { position: absolute; inset: 0 auto 0 -45%; width: 45%; border-radius: inherit; background: linear-gradient(90deg, transparent, #7dd3fc, #fff, #38bdf8, transparent); animation: splash-shimmer 1.05s ease-in-out infinite; }
+@keyframes splash-shimmer { from { transform: translateX(0); } to { transform: translateX(420%); } }
+@keyframes splash-rise { from { opacity: 0; transform: translateY(12px) scale(.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
 
-  $("#weeklyCompletedCount").textContent = completedOrders.length;
-  $("#weeklyPendingCount").textContent = pendingOrders.length;
-  $("#weeklyCancelledCount").textContent = cancelledOrders.length;
-  $("#statsDateLabel").textContent = `${formatDate(range.start)} – ${formatDate(range.end)}`;
-
-  const counts = dates.map((date) => completedOrders.filter((order) => getCompletedDate(order) === date).length);
-  const maxCount = Math.max(1, ...counts);
-  $("#weeklyBreakdown").innerHTML = dates.map((date, index) => {
-    const weekday = new Intl.DateTimeFormat("vi-VN", { weekday: "short" }).format(new Date(`${date}T12:00:00`));
-    const dayNumber = date.slice(8, 10);
-    const count = counts[index];
-    const height = count === 0 ? 4 : Math.max(12, Math.round((count / maxCount) * 100));
-    return `<div class="weekly-bar-column" title="${escapeHTML(formatDate(date))}: ${count} đơn">
-      <strong class="weekly-bar-count">${count}</strong>
-      <div class="weekly-bar-track"><span class="weekly-bar-fill" style="height:${height}%"></span></div>
-      <span class="weekly-bar-day">${escapeHTML(weekday)}</span><span class="weekly-bar-date">${dayNumber}</span>
-    </div>`;
-  }).join("");
+.stats-management { display: grid; grid-template-columns: 1fr; gap: 10px; margin: 18px 0 12px; }
+.stats-management button { width: 100%; min-height: 46px; justify-content: center; }
+.stats-management .danger-button { background: #dc2626; color: #fff; border: 1px solid #dc2626; }
+.stats-management .secondary-button { border: 1px solid #cbd5e1; }
+@media (min-width: 480px) { .stats-management { grid-template-columns: 1fr 1fr; } }
+@media (prefers-reduced-motion: reduce) {
+  .splash-content, .splash-loader span { animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
+  .splash-screen { transition-duration: .01ms; }
 }
 
-function renderHistory() {
-  const selectedDate = $("#historyDate").value || getLocalDate();
-
-  // Lịch sử chỉ lưu các đơn giao thành công; ngày lọc là ngày hoàn thành.
-  const orders = getOrders()
-    .filter((order) => order.status === "completed" && getCompletedDate(order) === selectedDate)
-    .sort((a, b) => new Date(b.completedAt || b.createdAt || 0) - new Date(a.completedAt || a.createdAt || 0));
-
-  $("#historyList").innerHTML = orders
-    .map((order) => buildOrderCard(order, true))
-    .join("");
-
-  $("#historyEmpty").classList.toggle("hidden", orders.length > 0);
+/* Ảnh xác nhận giao hàng */
+.proof-thumbnail-button {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+  padding: 8px;
+  border: 1px solid #bae6fd;
+  border-radius: 13px;
+  color: var(--ocean-800);
+  background: #f0f9ff;
+  text-align: left;
+  cursor: pointer;
+  font-size: 0.76rem;
+  font-weight: 750;
 }
 
-function renderAll() {
-  cleanOldOrders();
-  renderHome();
-  renderStats();
-  renderHistory();
+.proof-thumbnail {
+  display: block;
+  width: 64px;
+  height: 64px;
+  flex: 0 0 64px;
+  object-fit: cover;
+  border-radius: 9px;
+  background: #e2e8f0;
 }
 
-function changeTab(tabName) {
-  if (!document.getElementById(`${tabName}Tab`)) return;
-  const tabOrder = ["home", "stats", "history"];
-  const oldIndex = tabOrder.indexOf(activeTabName);
-  const newIndex = tabOrder.indexOf(tabName);
-  const direction = newIndex >= oldIndex ? "tab-enter-left" : "tab-enter-right";
-
-  $$(".tab-content").forEach((element) => {
-    element.classList.remove("active", "tab-enter-left", "tab-enter-right");
-  });
-  $$(".nav-item").forEach((element) => element.classList.remove("active"));
-
-  const panel = $(`#${tabName}Tab`);
-  if (!panel) return;
-  panel.classList.add("active", direction);
-  // Restart the entry animation even when the same tab is tapped again.
-  void panel.offsetWidth;
-  activeTabName = tabName;
-  $(`.nav-item[data-tab="${tabName}"]`)?.classList.add("active");
-
-  // Nút thêm đơn chỉ xuất hiện ở tab Trang chủ.
-  $("#headerAddButton").classList.toggle("hidden", tabName !== "home");
-
-  if (tabName === "history") renderHistory();
-  if (tabName === "stats") renderStats();
+.quick-actions {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
-function showOrderModal() {
-  // Thêm đơn luôn mở duy nhất giao diện nhập hàng loạt.
-  editingOrderId = null;
-  $("#bulkForm").reset();
-  $("#bulkOrderText").value = "";
-  $("#bulkForm").classList.remove("hidden");
-  $("#manualForm").classList.add("hidden");
-  $("#orderModalTitle").textContent = "Thêm đơn hàng";
-  $("#orderModalSubtitle").textContent = "Dán nhiều đơn — mỗi dòng là một đơn hàng";
-  $("#saveBulkOrdersButton").innerHTML = '<svg><use href="#i-plus"></use></svg> Lưu tất cả đơn';
-  $("#orderModal").classList.remove("hidden");
-  document.body.style.overflow = "hidden";
-  setTimeout(() => $("#bulkOrderText").focus(), 150);
+/* Các nút thao tác: vùng chạm đủ lớn, màu phân biệt theo chức năng. */
+.quick-actions {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0;
+  overflow: hidden;
+  border-radius: 0 0 18px 18px;
 }
-
-function openEditOrder(order) {
-  if (!order || order.status !== "pending") return;
-  editingOrderId = order.id;
-
-  // Giữ nguyên form sửa đơn từng trường như phiên bản cũ; không dùng textarea nhập nhiều đơn.
-  $("#manualForm").reset();
-  $("#customerName").value = order.customerName || "";
-  $("#customerPhone").value = order.phone || "";
-  $("#orderDetail").value = order.detail || "";
-  $("#customerAddress").value = order.address || "";
-  $("#orderNote").value = order.note || "";
-  $("#cashPayment").checked = order.paymentMethod === "cod";
-  $("#customerPhone").required = false;
-  $("#customerAddress").required = false;
-
-  $("#bulkForm").classList.add("hidden");
-  $("#manualForm").classList.remove("hidden");
-  $("#orderModalTitle").textContent = "Sửa đơn hàng";
-  $("#orderModalSubtitle").textContent = `Cập nhật thông tin đơn của ${order.customerName}`;
-  $("#orderModal").classList.remove("hidden");
-  document.body.style.overflow = "hidden";
-  setTimeout(() => $("#customerName").focus(), 150);
+.quick-action {
+  min-width: 0;
+  min-height: 58px;
+  padding: 8px 4px;
+  gap: 5px;
+  line-height: 1.2;
+  text-align: center;
+  overflow-wrap: anywhere;
+  transition: background 160ms ease, transform 160ms ease;
 }
-
-function closeOrderModal() {
-  $("#orderModal").classList.add("hidden");
-  document.body.style.overflow = "";
-  editingOrderId = null;
-  // Reset modal về trạng thái nhập hàng loạt cho lần thêm đơn tiếp theo.
-  $("#manualForm").classList.add("hidden");
-  $("#bulkForm").classList.remove("hidden");
+.quick-action svg { flex: 0 0 20px; }
+.quick-action.call { background: #f0f9ff; }
+.quick-action.map { background: #f5f3ff; }
+.quick-action.complete { background: #f0fdf4; }
+.quick-action.cancel { background: #fff1f2; }
+.quick-action:active { transform: scale(.97); }
+.quick-action:focus-visible,
+.payment-toggle:focus-visible,
+.primary-button:focus-visible,
+.secondary-button:focus-visible,
+.danger-button:focus-visible,
+.photo-complete-button:focus-visible {
+  outline: 3px solid #38bdf8;
+  outline-offset: 2px;
 }
-
-function openConfirm({ title, message, type, onAccept, onPhoto }) {
-  pendingConfirmAction = onAccept;
-  pendingPhotoConfirmAction = onPhoto || null;
-  const photoButton = $("#confirmPhotoComplete");
-  photoButton.classList.toggle("hidden", type !== "complete" || typeof onPhoto !== "function");
-
-  $("#confirmTitle").textContent = title;
-  $("#confirmMessage").textContent = message;
-  $("#confirmAccept").textContent = type === "complete" ? "Hoàn thành" : "Xác nhận";
-  $("#confirmAccept").className = type === "complete" ? "primary-button" : "danger-button";
-
-  $("#confirmIcon").innerHTML =
-    type === "complete"
-      ? '<svg><use href="#i-check"></use></svg>'
-      : '<svg><use href="#i-close"></use></svg>';
-
-  $("#confirmModal").classList.remove("hidden");
-}
-
-function closeConfirm() {
-  pendingConfirmAction = null;
-  pendingPhotoConfirmAction = null;
-  $("#confirmModal").classList.add("hidden");
-}
-
-function showToast(message) {
-  const toast = $("#toast");
-
-  toast.textContent = message;
-  toast.classList.remove("hidden");
-
-  clearTimeout(showToast.timer);
-
-  showToast.timer = setTimeout(() => {
-    toast.classList.add("hidden");
-  }, 2600);
-}
-
-function handleCardAction(event) {
-  const actionButton = event.target.closest("[data-action]");
-  if (!actionButton) return;
-
-  const { action, id } = actionButton.dataset;
-  const order = getOrders().find((item) => item.id === id);
-
-  if (!order) return;
-
-  if (action === "edit-order") {
-    openEditOrder(order);
-    return;
+@media (max-width: 420px) {
+  .quick-actions { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .quick-action {
+    min-height: 48px;
+    flex-direction: row;
+    justify-content: center;
+    gap: 7px;
+    padding: 10px 8px;
+    font-size: .76rem;
   }
+  .quick-action:nth-child(odd) { border-right: 1px solid var(--slate-200); }
+  .quick-action:nth-child(-n+2) { border-bottom: 1px solid var(--slate-200); }
+}
 
-  if (action === "delete-order") {
-    openConfirm({
-      title: "Xóa đơn trong lịch sử?",
-      message: `Bạn có chắc muốn xóa đơn của ${order.customerName} ngày ${formatDate(order.date)}? Thao tác này không thể hoàn tác.`,
-      type: "cancel",
-      onAccept: () => {
-        saveOrders(getOrders().filter((item) => item.id !== id));
-        renderAll();
-        showToast("Đã xóa đơn hàng khỏi lịch sử.");
-      }
-    });
-    return;
+.history-proof-action {
+  display: flex;
+  justify-content: flex-end;
+  border-top: 1px solid var(--slate-200);
+}
+
+.history-proof-action .quick-action {
+  min-height: 48px;
+  width: 50%;
+  flex-direction: row;
+  border-right: 0;
+  gap: 7px;
+}
+
+.proof-lightbox {
+  position: fixed;
+  z-index: 220;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 54px 14px 24px;
+  background: rgba(2, 6, 23, 0.96);
+}
+
+.proof-lightbox img {
+  display: block;
+  max-width: 100%;
+  max-height: calc(100dvh - 130px);
+  object-fit: contain;
+  border-radius: 10px;
+}
+
+.proof-lightbox p {
+  margin: 0;
+  color: #f8fafc;
+  text-align: center;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.proof-lightbox-close {
+  position: absolute;
+  top: max(12px, env(safe-area-inset-top));
+  right: 16px;
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 50%;
+  color: white;
+  background: rgba(255, 255, 255, 0.12);
+  cursor: pointer;
+  font-size: 30px;
+  line-height: 1;
+}
+
+@media (max-width: 380px) {
+  .quick-action {
+    font-size: 0.59rem;
   }
-
-  if (action === "toggle-payment") {
-    const paymentMethod = order.paymentMethod === "cod" ? "bank" : "cod";
-
-    updateOrder(id, { paymentMethod });
-
-    showToast(
-      paymentMethod === "cod"
-        ? "Đã chọn khách trả tiền mặt."
-        : "Đã chuyển sang thanh toán Bank."
-    );
-  }
-
-  if (action === "complete") {
-    openConfirm({
-      title: "Hoàn thành đơn?",
-      message: `Xác nhận đã giao thành công cho ${order.customerName}.`,
-      type: "complete",
-      onAccept: () => {
-        const completedAt = new Date().toISOString();
-        updateOrder(id, {
-          status: "completed",
-          completedAt
-        });
-
-        showToast("Đơn hàng đã hoàn thành.");
-      },
-      onPhoto: () => {
-        const input = $("#proofPhotoInput");
-        input.dataset.orderId = id;
-        input.dataset.completeAfterPhoto = "true";
-        // Capture the completion-confirmation time before the camera opens.
-        input.dataset.completionTimestamp = new Date().toISOString();
-        input.value = "";
-        input.click();
-      }
-    });
-  }
-
-  if (action === "view-proof") {
-    openProofLightbox(order);
-  }
-
-  if (action === "cancel") {
-    openConfirm({
-      title: "Hủy đơn hàng?",
-      message: `Đơn của ${order.customerName} sẽ được chuyển sang trạng thái đã hủy.`,
-      type: "cancel",
-      onAccept: () => {
-        updateOrder(id, { status: "cancelled" });
-        showToast("Đơn hàng đã được hủy.");
-      }
-    });
+  .quick-action svg {
+    width: 18px;
+    height: 18px;
   }
 }
 
-function addManualOrder(event) {
-  event.preventDefault();
-
-  const customerName = $("#customerName").value.trim();
-  const phone = $("#customerPhone").value.trim();
-  const detail = $("#orderDetail").value.trim();
-  const address = $("#customerAddress").value.trim();
-  const note = $("#orderNote").value.trim();
-
-  if (!editingOrderId) {
-    showToast("Form này chỉ dùng để sửa đơn đang chờ giao.");
-    return;
-  }
-
-  if (!customerName || !detail) {
-    showToast("Vui lòng nhập ít nhất tên khách hàng và chi tiết đơn hàng.");
-    return;
-  }
-
-  const current = getOrders().find((order) => order.id === editingOrderId);
-  if (!current || current.status !== "pending") {
-    showToast("Chỉ có thể sửa đơn đang chờ giao.");
-    closeOrderModal();
-    return;
-  }
-
-  updateOrder(editingOrderId, {
-    customerName,
-    phone: cleanPhone(phone),
-    detail,
-    address,
-    note,
-    paymentMethod: $("#cashPayment").checked ? "cod" : "bank"
-  });
-  closeOrderModal();
-  showToast("Đã cập nhật đơn hàng.");
+/* Chụp ảnh chỉ xuất hiện bên trong hộp thoại xác nhận hoàn thành đơn. */
+.photo-complete-button {
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid #7dd3fc;
+  border-radius: 12px;
+  color: #075985;
+  background: #e0f2fe;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 800;
+  cursor: pointer;
+  grid-column: 1 / -1;
 }
 
-function addBulkOrders(event) {
-  event.preventDefault();
+/* Hộp xác nhận: hai nút quyết định nằm cạnh nhau, nút chụp ảnh nằm riêng bên dưới. */
+.confirm-actions {
+  align-items: stretch;
+}
+.confirm-actions > button {
+  width: 100%;
+  min-width: 0;
+  min-height: 46px;
+  padding: 10px 12px;
+  line-height: 1.25;
+}
+.confirm-actions:has(.photo-complete-button:not(.hidden)) {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.confirm-actions:has(.photo-complete-button:not(.hidden)) #confirmCancel { grid-column: 1; grid-row: 1; }
+.confirm-actions:has(.photo-complete-button:not(.hidden)) #confirmAccept { grid-column: 2; grid-row: 1; }
+.confirm-actions:has(.photo-complete-button:not(.hidden)) #confirmPhotoComplete {
+  grid-column: 1 / -1;
+  grid-row: 2;
+}
+.photo-complete-button {
+  color: #075985;
+  background: linear-gradient(135deg, #e0f2fe, #bae6fd);
+  border: 1px solid #7dd3fc;
+  box-shadow: 0 3px 10px rgba(2, 132, 199, .12);
+}
+@media (max-width: 360px) {
+  .confirm-actions { gap: 7px; }
+  .confirm-actions > button { padding-inline: 8px; font-size: .8rem; }
+}
 
-  const rawText = $("#bulkOrderText").value.trim();
-  if (!rawText) {
-    showToast("Vui lòng nhập danh sách đơn hàng.");
-    return;
+
+/* Nút sửa đơn và xóa lịch sử được tách khỏi 4 thao tác giao hàng chính. */
+.order-edit-row,
+.history-card-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 10px;
+}
+.edit-order-button,
+.delete-history-order {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 40px;
+  padding: 9px 13px;
+  border-radius: 11px;
+  font-size: .8rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: transform 150ms ease, background 150ms ease;
+}
+.edit-order-button {
+  color: var(--ocean-800);
+  background: var(--ocean-50);
+  border: 1px solid var(--ocean-300);
+}
+.delete-history-order {
+  color: #b91c1c;
+  background: #fff1f2;
+  border: 1px solid #fecdd3;
+}
+.edit-order-button:active,
+.delete-history-order:active,
+.proof-download-button:active { transform: scale(.98); }
+
+.proof-download-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  min-height: 46px;
+  width: min(100%, 320px);
+  padding: 11px 18px;
+  color: white;
+  background: linear-gradient(135deg, #0284c7, #0369a1);
+  border: 1px solid rgba(125, 211, 252, .7);
+  border-radius: 14px;
+  box-shadow: 0 8px 24px rgba(2, 132, 199, .25);
+  font-size: .9rem;
+  font-weight: 850;
+  cursor: pointer;
+}
+.proof-download-button svg { width: 20px; height: 20px; flex: none; }
+.proof-lightbox { overflow-y: auto; }
+.proof-lightbox img { flex: 0 1 auto; }
+@media (max-width: 420px) {
+  .order-edit-row, .history-card-actions { justify-content: stretch; }
+  .edit-order-button, .delete-history-order { width: 100%; }
+  .proof-download-button { width: 100%; max-width: 360px; }
+}
+
+
+/* Splash exit -> app rises into view, with staggered native-app feel. */
+.app-shell, .bottom-nav { opacity: 0; transform: translateY(22px); }
+body.app-ready .app-shell { animation: app-rise-in .72s cubic-bezier(.2,.8,.2,1) both; }
+body.app-ready .bottom-nav { animation: app-rise-in .72s cubic-bezier(.2,.8,.2,1) .12s both; }
+body.app-ready .app-header { animation: app-rise-in .58s cubic-bezier(.2,.8,.2,1) .04s both; }
+body.app-ready .tab-content.active:not(.tab-enter-left):not(.tab-enter-right) { animation: panel-rise-in .56s cubic-bezier(.2,.8,.2,1) .08s both; }
+@keyframes app-rise-in { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes panel-rise-in { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes tab-slide-left { 0% { opacity: 0; transform: translateX(24px) perspective(900px) rotateY(-2deg); } 100% { opacity: 1; transform: translateX(0) perspective(900px) rotateY(0); } }
+@keyframes tab-slide-right { 0% { opacity: 0; transform: translateX(-24px) perspective(900px) rotateY(2deg); } 100% { opacity: 1; transform: translateX(0) perspective(900px) rotateY(0); } }
+.tab-content.active.tab-enter-left { animation: tab-slide-left .42s cubic-bezier(.2,.75,.25,1) both; }
+.tab-content.active.tab-enter-right { animation: tab-slide-right .42s cubic-bezier(.2,.75,.25,1) both; }
+
+.stats-view-switch { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; padding: 5px; margin: 0 0 14px; background: rgba(186,230,253,.5); border: 1px solid rgba(125,211,252,.55); border-radius: 15px; }
+.stats-view-button { min-height: 42px; padding: 9px 12px; color: var(--ocean-800); background: transparent; border: 0; border-radius: 11px; font-size: .84rem; font-weight: 800; cursor: pointer; transition: background .22s ease, color .22s ease, box-shadow .22s ease, transform .22s ease; }
+.stats-view-button:active { transform: scale(.98); }
+.stats-view-button.active { color: #fff; background: linear-gradient(135deg, var(--ocean-800), var(--ocean-600)); box-shadow: 0 4px 11px rgba(3,105,161,.22); }
+.stats-week-filter { margin-bottom: 14px; }
+.stats-week-filter input { max-width: 54%; color: var(--ocean-900); background: transparent; border: 0; font: inherit; font-weight: 750; outline: none; }
+.weekly-chart-card { margin-top: 14px; padding: 16px 13px 13px; background: rgba(255,255,255,.95); border: 1px solid var(--ocean-100); border-radius: 18px; box-shadow: 0 5px 18px rgba(8,47,73,.05); }
+.weekly-chart-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 18px; }
+.weekly-chart-heading h3 { margin: 0; color: var(--slate-900); font-size: .94rem; font-weight: 850; }
+.weekly-chart-heading p { margin: 4px 0 0; color: var(--slate-500); font-size: .72rem; }
+.chart-legend { display: inline-flex; align-items: center; gap: 5px; color: var(--slate-500); font-size: .68rem; white-space: nowrap; }
+.chart-legend i { display: inline-block; width: 8px; height: 8px; background: var(--ocean-600); border-radius: 2px; }
+.weekly-bars { display: grid; grid-template-columns: repeat(7, minmax(0,1fr)); gap: 7px; min-height: 154px; align-items: end; }
+.weekly-bar-column { display: flex; min-width: 0; height: 154px; flex-direction: column; align-items: center; justify-content: flex-end; gap: 4px; }
+.weekly-bar-count { min-height: 15px; color: var(--ocean-900); font-size: .72rem; font-weight: 850; font-variant-numeric: tabular-nums; }
+.weekly-bar-track { display: flex; width: min(100%, 27px); height: 102px; align-items: flex-end; overflow: hidden; background: #f0f9ff; border: 1px solid #e0f2fe; border-radius: 7px 7px 3px 3px; }
+.weekly-bar-fill { display: block; width: 100%; min-height: 3px; background: linear-gradient(180deg, #38bdf8, #0369a1); border-radius: 5px 5px 2px 2px; animation: bar-grow .5s cubic-bezier(.2,.8,.2,1) both; transform-origin: bottom; }
+.weekly-bar-day { margin-top: 2px; color: var(--slate-500); font-size: .65rem; text-transform: capitalize; }
+.weekly-bar-date { color: var(--slate-900); font-size: .7rem; font-weight: 800; }
+@keyframes bar-grow { from { transform: scaleY(.08); opacity: .5; } to { transform: scaleY(1); opacity: 1; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .app-shell, .bottom-nav, body.app-ready .app-shell, body.app-ready .bottom-nav, body.app-ready .app-header,
+  .tab-content.active, .tab-content.active.tab-enter-left, .tab-content.active.tab-enter-right, .weekly-bar-fill {
+    animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important;
   }
-
-  const lines = rawText.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
-  const parsedOrders = [];
-  let invalidLines = 0;
-
-  lines.forEach((line) => {
-    // Giữ lại trường trống, ví dụ: Tên - Đơn hàng - - Địa chỉ - Ghi chú.
-    const parts = line.split(/(?<=\s)-(?=\s|$)/).map((part) => part.trim());
-    const customerName = parts[0] || "";
-    const detail = parts[1] || "";
-    const phone = parts[2] || "";
-    const address = parts[3] || "";
-    const note = parts.slice(4).join(" - ").trim();
-
-    if (!customerName || !detail) {
-      invalidLines += 1;
-      return;
-    }
-
-    parsedOrders.push({ customerName, detail, phone, address, note });
-  });
-
-  if (!parsedOrders.length) {
-    showToast("Không có dòng nào đúng định dạng.");
-    return;
-  }
-
-  const newOrders = parsedOrders.map((data) => createOrder({ ...data, paymentMethod: "bank" }));
-  saveNewOrders(newOrders);
-  closeOrderModal();
-
-  const message = invalidLines > 0
-    ? `Đã thêm ${newOrders.length} đơn. Bỏ qua ${invalidLines} dòng lỗi.`
-    : `Đã thêm thành công ${newOrders.length} đơn hàng.`;
-  showToast(message);
+  .app-shell, .bottom-nav { opacity: 1; transform: none; }
 }
 
-function openProofLightbox(order) {
-  if (!order || !order.proofImage) {
-    showToast("Đơn hàng chưa có ảnh xác nhận.");
-    return;
-  }
+/* Header appearance toggle */
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex: none;
+}
+.theme-toggle {
+  display: grid;
+  place-items: center;
+  width: 45px;
+  height: 45px;
+  flex: none;
+  border: 1px solid rgba(255,255,255,.42);
+  border-radius: 15px;
+  color: #fff;
+  background: rgba(255,255,255,.15);
+  box-shadow: 0 5px 15px rgba(8,47,73,.13);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition: transform .2s ease, background .2s ease;
+}
+.theme-toggle:active { transform: scale(.94) rotate(-5deg); }
 
-  currentProofOrder = order;
-  $("#proofLightboxImage").src = order.proofImage;
-  const proofDate = order.completedAt ? formatDate(getLocalDate(new Date(order.completedAt))) : (order.proofImageAt ? formatDate(getLocalDate(new Date(order.proofImageAt))) : formatDate(order.date));
-  $("#proofLightboxCaption").textContent = `Ảnh xác nhận · ${order.customerName} · ${proofDate}`;
-  $("#proofLightbox").classList.remove("hidden");
-  document.body.style.overflow = "hidden";
+/* Dark mode: calm navy/slate surfaces with readable text and controls. */
+body.dark-mode {
+  color: #e2e8f0;
+  background: linear-gradient(180deg, #0b1220 0%, #101a2b 45%, #0b1220 100%);
+  color-scheme: dark;
+}
+body.dark-mode .section-heading h2,
+body.dark-mode .customer-name,
+body.dark-mode .empty-state h3,
+body.dark-mode .stat-card p,
+body.dark-mode .weekly-chart-heading h3,
+body.dark-mode .weekly-bar-date,
+body.dark-mode .modal-header h2,
+body.dark-mode .confirm-card h2,
+body.dark-mode .order-form label > span,
+body.dark-mode .order-detail,
+body.dark-mode .payment-type,
+body.dark-mode .cash-option strong {
+  color: #eaf2ff;
+}
+body.dark-mode .section-heading p,
+body.dark-mode .address-line,
+body.dark-mode .note-line,
+body.dark-mode .empty-state p,
+body.dark-mode .stats-note,
+body.dark-mode .stat-card span,
+body.dark-mode .weekly-chart-heading p,
+body.dark-mode .weekly-bar-day,
+body.dark-mode .chart-legend,
+body.dark-mode .modal-header p,
+body.dark-mode .bulk-guide,
+body.dark-mode .cash-option small,
+body.dark-mode .confirm-card p {
+  color: #9fb0c7;
+}
+body.dark-mode .order-card,
+body.dark-mode .stat-card,
+body.dark-mode .weekly-chart-card {
+  background: rgba(22, 33, 52, .96);
+  border-color: #2b3b52;
+  box-shadow: 0 8px 24px rgba(0,0,0,.18);
+}
+body.dark-mode .order-card.completed { border-color: #17664b; }
+body.dark-mode .order-card.cancelled { border-color: #713b48; }
+body.dark-mode .completion-time {
+  color: #7ee7cb;
+  background: rgba(13, 78, 70, .34);
+  border-color: rgba(45, 170, 145, .28);
+}
+body.dark-mode .payment-row { background: #101c2e; }
+body.dark-mode .quick-actions { border-top-color: #2b3b52; }
+body.dark-mode .quick-action {
+  color: #c7d4e5;
+  background: #152238;
+  border-right-color: #2b3b52;
+}
+body.dark-mode .quick-action.call { color: #7dd3fc; background: #10283a; }
+body.dark-mode .quick-action.map { color: #c4b5fd; background: #241f3b; }
+body.dark-mode .quick-action.complete { color: #86efac; background: #132c28; }
+body.dark-mode .quick-action.cancel { color: #fda4af; background: #321d2a; }
+body.dark-mode .bottom-nav {
+  background: rgba(15, 23, 42, .94);
+  border-color: #2b3b52;
+  box-shadow: 0 -8px 28px rgba(0,0,0,.3);
+}
+body.dark-mode .nav-item { color: #91a4bd; }
+body.dark-mode .nav-item.active { color: #7dd3fc; }
+body.dark-mode .date-filter {
+  color: #c7d4e5;
+  background: #152238;
+  border-color: #2b3b52;
+}
+body.dark-mode .date-filter input,
+body.dark-mode .stats-week-filter input {
+  color: #eaf2ff;
+  color-scheme: dark;
+}
+body.dark-mode .stats-view-switch {
+  background: rgba(18, 35, 55, .92);
+  border-color: #2b4a66;
+}
+body.dark-mode .stats-view-button { color: #a6dfff; }
+body.dark-mode .stats-view-button.active { color: #fff; }
+body.dark-mode .weekly-bar-count { color: #bae6fd; }
+body.dark-mode .weekly-bar-track { background: #0e1b2d; border-color: #263e57; }
+body.dark-mode .modal-card,
+body.dark-mode .confirm-card {
+  color: #e2e8f0;
+  background: #111d30;
+  border-color: #2b3b52;
+}
+body.dark-mode .icon-button {
+  color: #c7d4e5;
+  background: #1e2c41;
+}
+body.dark-mode .bulk-guide b { color: #7dd3fc; }
+body.dark-mode .order-form textarea,
+body.dark-mode .order-form input[type="text"],
+body.dark-mode .order-form input[type="tel"] {
+  color: #eaf2ff;
+  background: #0d1829;
+  border-color: #30465f;
+}
+body.dark-mode .order-form textarea::placeholder,
+body.dark-mode .order-form input::placeholder { color: #71859f; }
+body.dark-mode .proof-lightbox { background: rgba(2, 8, 18, .96); }
+body.dark-mode .toast {
+  color: #eaf2ff;
+  background: #17263b;
+  border: 1px solid #30465f;
+}
+body.dark-mode .stats-management .secondary-button {
+  color: #d7e5f6;
+  background: #1b2a3e;
+  border-color: #30445c;
+}
+body.dark-mode .edit-order-button,
+body.dark-mode .delete-history-order {
+  color: #c7d4e5;
+  background: #18283d;
+  border-color: #30445c;
 }
 
-function closeProofLightbox() {
-  $("#proofLightbox").classList.add("hidden");
-  $("#proofLightboxImage").removeAttribute("src");
-  currentProofOrder = null;
-  document.body.style.overflow = "";
+@media (prefers-reduced-motion: reduce) {
+  .theme-toggle { transition: none; }
 }
 
-function safeFileName(value = "KhachHang") {
-  const normalized = String(value).normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-  return normalized.replace(/[^a-zA-Z0-9_-]+/g, "_").replace(/^_+|_+$/g, "") || "KhachHang";
-}
-
-async function downloadBrandedProof() {
-  const order = currentProofOrder;
-  if (!order?.proofImage) {
-    showToast("Không tìm thấy ảnh xác nhận để tải.");
-    return;
-  }
-  try {
-    const image = new Image();
-    image.src = order.proofImage;
-    await new Promise((resolve, reject) => {
-      image.onload = resolve;
-      image.onerror = () => reject(new Error("Không thể đọc ảnh xác nhận."));
-    });
-
-    // Canvas 2x-friendly high-resolution PNG with a crisp, square Ocean Blue frame.
-    const maxWidth = 1800;
-    const scale = Math.min(1, maxWidth / image.naturalWidth);
-    const imageWidth = Math.max(1, Math.round(image.naturalWidth * scale));
-    const imageHeight = Math.max(1, Math.round(image.naturalHeight * scale));
-    const border = Math.max(8, Math.round(imageWidth * 0.009));
-    const pad = Math.max(22, Math.round(imageWidth * 0.025));
-    const headerHeight = Math.max(148, Math.round(imageWidth * 0.17));
-    const footerHeight = Math.max(50, Math.round(imageWidth * 0.055));
-    const canvas = document.createElement("canvas");
-    canvas.width = imageWidth + (pad + border) * 2;
-    canvas.height = imageHeight + headerHeight + footerHeight + (pad + border) * 2;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) throw new Error("Thiết bị không hỗ trợ xuất ảnh.");
-
-    const ocean = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
-    ocean.addColorStop(0, "#075985");
-    ocean.addColorStop(0.55, "#0284c7");
-    ocean.addColorStop(1, "#38bdf8");
-    ctx.fillStyle = ocean;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    // A narrow inner rule keeps all four corners perfectly square.
-    ctx.strokeStyle = "rgba(224,242,254,.72)";
-    ctx.lineWidth = Math.max(2, Math.round(border * 0.22));
-    ctx.strokeRect(border / 2, border / 2, canvas.width - border, canvas.height - border);
-
-    const imageX = pad + border;
-    const imageY = headerHeight + pad + border;
-    const whiteBand = ctx.createLinearGradient(0, border, canvas.width, headerHeight);
-    whiteBand.addColorStop(0, "rgba(7,89,133,.25)");
-    whiteBand.addColorStop(1, "rgba(255,255,255,.06)");
-    ctx.fillStyle = whiteBand;
-    ctx.fillRect(border, border, canvas.width - border * 2, headerHeight);
-
-    const left = imageX;
-    const usableWidth = canvas.width - imageX * 2;
-    const name = String(order.customerName || "Khách hàng");
-    const address = String(order.address || "Chưa có địa chỉ giao hàng");
-    const formattedCompletionTime = formatCompletionTimestamp(order.completedAt);
-    const completionTimeText = formattedCompletionTime
-      ? `🕒 ${formattedCompletionTime}`
-      : "🕒 Chưa lưu mốc giờ hoàn thành";
-
-    ctx.fillStyle = "#ffffff";
-    ctx.textAlign = "left";
-    ctx.textBaseline = "top";
-    let nameFontSize = Math.max(20, Math.round(imageWidth * 0.029));
-    ctx.font = `800 ${nameFontSize}px system-ui, -apple-system, Segoe UI, sans-serif`;
-    while (ctx.measureText(name).width > usableWidth && nameFontSize > 16) {
-      nameFontSize -= 2;
-      ctx.font = `800 ${nameFontSize}px system-ui, -apple-system, Segoe UI, sans-serif`;
-    }
-    const nameY = border + Math.max(14, Math.round(pad * 0.32));
-    ctx.fillText(name, left, nameY, usableWidth);
-
-    // Wrap the delivery address to at most two lines.
-    const addressFontSize = Math.max(14, Math.round(imageWidth * 0.017));
-    ctx.font = `500 ${addressFontSize}px system-ui, -apple-system, Segoe UI, sans-serif`;
-    ctx.fillStyle = "rgba(255,255,255,.94)";
-    const addressY = nameY + Math.round(nameFontSize * 1.25);
-    const addressLineHeight = Math.round(addressFontSize * 1.3);
-    const addressLines = [];
-    let line = "";
-    let addressOverflowed = false;
-    for (const word of address.split(/\s+/)) {
-      const trial = line ? `${line} ${word}` : word;
-      if (ctx.measureText(trial).width > usableWidth && line) {
-        addressLines.push(line);
-        line = word;
-        if (addressLines.length === 2) {
-          addressOverflowed = true;
-          break;
-        }
-      } else {
-        line = trial;
-      }
-    }
-    if (!addressOverflowed && line) addressLines.push(line);
-    if (addressOverflowed && addressLines.length) {
-      const lastIndex = addressLines.length - 1;
-      let lastLine = addressLines[lastIndex];
-      while (ctx.measureText(`${lastLine}…`).width > usableWidth && lastLine.length > 1) {
-        lastLine = lastLine.slice(0, -1);
-      }
-      addressLines[lastIndex] = `${lastLine}…`;
-    }
-    addressLines.slice(0, 2).forEach((text, index) => {
-      ctx.fillText(text, left, addressY + index * addressLineHeight, usableWidth);
-    });
-
-    const timeFontSize = Math.max(14, Math.round(imageWidth * 0.018));
-    ctx.font = `700 ${timeFontSize}px system-ui, -apple-system, Segoe UI, sans-serif`;
-    ctx.fillStyle = "#e0f2fe";
-    const timeY = addressY + Math.max(1, addressLines.length) * addressLineHeight + Math.max(7, Math.round(pad * 0.12));
-    let visibleTimeFontSize = timeFontSize;
-    while (ctx.measureText(completionTimeText).width > usableWidth && visibleTimeFontSize > 12) {
-      visibleTimeFontSize -= 1;
-      ctx.font = `700 ${visibleTimeFontSize}px system-ui, -apple-system, Segoe UI, sans-serif`;
-    }
-    ctx.fillText(completionTimeText, left, timeY, usableWidth);
-
-    ctx.fillStyle = "#ffffff";
-    ctx.fillRect(imageX, imageY, imageWidth, imageHeight);
-    ctx.drawImage(image, imageX, imageY, imageWidth, imageHeight);
-
-    const footerY = imageY + imageHeight + pad;
-    ctx.strokeStyle = "rgba(224,242,254,.55)";
-    ctx.lineWidth = Math.max(1, Math.round(border * 0.18));
-    ctx.beginPath();
-    ctx.moveTo(imageX, footerY - Math.max(7, Math.round(pad * 0.28)));
-    ctx.lineTo(imageX + imageWidth, footerY - Math.max(7, Math.round(pad * 0.28)));
-    ctx.stroke();
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.font = `500 ${Math.max(12, Math.round(imageWidth * 0.014))}px system-ui, -apple-system, Segoe UI, sans-serif`;
-    ctx.fillStyle = "rgba(255,255,255,.93)";
-    ctx.fillText("Tom Shipper by Duy Hoang Network", canvas.width / 2, footerY + footerHeight / 2, imageWidth);
-
-    const blob = await new Promise((resolve, reject) => canvas.toBlob((value) => value ? resolve(value) : reject(new Error("Không thể xuất PNG.")), "image/png"));
-    const fileName = `XacNhan_Don_${safeFileName(name)}.png`;
-    const imageFile = new File([blob], fileName, { type: "image/png", lastModified: Date.now() });
-
-    // Hệ điều hành sẽ cho chọn Photos/Gallery hoặc ứng dụng đích; không thể ép trình duyệt tự ghi vào thư viện ảnh.
-    if (navigator.share && navigator.canShare && navigator.canShare({ files: [imageFile] })) {
-      try {
-        await navigator.share({ files: [imageFile], title: "Ảnh xác thực giao hàng", text: `Ảnh xác nhận giao hàng · ${name} · ${formattedCompletionTime || "Chưa lưu mốc giờ"}` });
-        showToast("Đã chia sẻ ảnh xác thực. Chọn Lưu hình ảnh nếu được hỗ trợ.");
-        return;
-      } catch (shareError) {
-        // Khi người dùng tự hủy bảng chia sẻ, không tải file thứ hai ngoài ý muốn.
-        if (shareError && shareError.name === "AbortError") return;
-      }
-    }
-
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = fileName;
-    link.style.display = "none";
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    window.setTimeout(() => URL.revokeObjectURL(url), 3000);
-    showToast("Đã tạo ảnh PNG để lưu vào thiết bị.");
-  } catch (error) {
-    showToast(error.message || "Không thể lưu ảnh xác thực.");
-  }
-}
-
-function compressImageToDataURL(file, maxDimension = 1440, quality = 0.78) {
-  return new Promise((resolve, reject) => {
-    const image = new Image();
-    const objectUrl = URL.createObjectURL(file);
-
-    image.onload = () => {
-      const scale = Math.min(1, maxDimension / Math.max(image.naturalWidth, image.naturalHeight));
-      const canvas = document.createElement("canvas");
-      canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
-      canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
-      const context = canvas.getContext("2d");
-      if (!context) {
-        URL.revokeObjectURL(objectUrl);
-        reject(new Error("Không thể xử lý ảnh trên thiết bị này."));
-        return;
-      }
-      context.drawImage(image, 0, 0, canvas.width, canvas.height);
-      URL.revokeObjectURL(objectUrl);
-      resolve(canvas.toDataURL("image/jpeg", quality));
-    };
-
-    image.onerror = () => {
-      URL.revokeObjectURL(objectUrl);
-      reject(new Error("Không đọc được ảnh đã chọn."));
-    };
-
-    image.src = objectUrl;
-  });
-}
-
-async function handleProofPhotoSelected(event) {
-  const input = event.currentTarget;
-  const file = input.files && input.files[0];
-  const orderId = input.dataset.orderId;
-  const requestedCompletionTimestamp = input.dataset.completionTimestamp;
-  if (!file || !orderId) {
-    delete input.dataset.orderId;
-    delete input.dataset.completeAfterPhoto;
-    delete input.dataset.completionTimestamp;
-    return;
-  }
-  if (!file.type.startsWith("image/")) {
-    showToast("Vui lòng chọn một tệp hình ảnh.");
-    delete input.dataset.orderId;
-    delete input.dataset.completeAfterPhoto;
-    delete input.dataset.completionTimestamp;
-    input.value = "";
-    return;
-  }
-
-  try {
-    const imageData = await compressImageToDataURL(file);
-    const orders = getOrders();
-    const index = orders.findIndex((order) => order.id === orderId);
-    if (index < 0) {
-      showToast("Không tìm thấy đơn hàng cần lưu ảnh.");
-      return;
-    }
-
-    orders[index].proofImage = imageData;
-    orders[index].proofImageAt = new Date().toISOString();
-    const completeAfterPhoto = input.dataset.completeAfterPhoto === "true";
-    if (completeAfterPhoto) {
-      orders[index].status = "completed";
-      orders[index].completedAt = requestedCompletionTimestamp || new Date().toISOString();
-    }
-    try {
-      saveOrders(orders);
-    } catch (storageError) {
-      showToast("Không đủ dung lượng lưu ảnh. Hãy chọn ảnh nhỏ hơn.");
-      return;
-    }
-    renderAll();
-    showToast(completeAfterPhoto ? "Đã lưu ảnh và hoàn thành đơn hàng." : "Đã lưu ảnh xác nhận vào đơn hàng.");
-  } catch (error) {
-    showToast(error.message || "Không thể lưu ảnh xác nhận.");
-  } finally {
-    input.value = "";
-    delete input.dataset.orderId;
-    delete input.dataset.completeAfterPhoto;
-    delete input.dataset.completionTimestamp;
-  }
-}
-
-function applyTheme(theme, persist = true) {
-  const isDark = theme === "dark";
-  document.body.classList.toggle("dark-mode", isDark);
-  const toggle = $("#themeToggle");
-  if (toggle) {
-    toggle.textContent = isDark ? "☀️" : "🌙";
-    toggle.setAttribute("aria-label", isDark ? "Chuyển sang chế độ sáng" : "Chuyển sang chế độ tối");
-    toggle.setAttribute("aria-pressed", String(isDark));
-    toggle.title = isDark ? "Chuyển sang chế độ sáng" : "Chuyển sang chế độ tối";
-  }
-  const themeColor = document.querySelector('meta[name="theme-color"]');
-  if (themeColor) themeColor.setAttribute("content", isDark ? "#0f172a" : "#0284c7");
-  if (persist) {
-    try { localStorage.setItem(THEME_STORAGE_KEY, isDark ? "dark" : "light"); } catch {}
-  }
-}
-
-function initializeTheme() {
-  let savedTheme = "light";
-  try { savedTheme = localStorage.getItem(THEME_STORAGE_KEY) || "light"; } catch {}
-  applyTheme(savedTheme === "dark" ? "dark" : "light", false);
-}
-
-function toggleTheme() {
-  applyTheme(document.body.classList.contains("dark-mode") ? "light" : "dark");
-}
-
-function initEvents() {
-  $$(".nav-item").forEach((button) => {
-    button.addEventListener("click", () => changeTab(button.dataset.tab));
-  });
-
-  ["#headerAddButton", "#emptyAddButton"].forEach((selector) => {
-    $(selector).addEventListener("click", showOrderModal);
-  });
-
-  $("#proofPhotoInput").addEventListener("change", handleProofPhotoSelected);
-  $("#closeProofLightbox").addEventListener("click", closeProofLightbox);
-  $("#downloadProofImage").addEventListener("click", downloadBrandedProof);
-  $("#proofLightbox").addEventListener("click", (event) => {
-    if (event.target === $("#proofLightbox")) closeProofLightbox();
-  });
-
-  $("#closeOrderModal").addEventListener("click", closeOrderModal);
-
-  $("#orderModal").addEventListener("click", (event) => {
-    if (event.target === $("#orderModal")) closeOrderModal();
-  });
-
-  $("#bulkForm").addEventListener("submit", addBulkOrders);
-  $("#manualForm").addEventListener("submit", addManualOrder);
-  $("#themeToggle").addEventListener("click", toggleTheme);
-
-  $("#historyDate").addEventListener("change", renderHistory);
-  $$(".stats-view-button").forEach((button) => {
-    button.addEventListener("click", () => {
-      statsView = button.dataset.statsView;
-      renderStats();
-    });
-  });
-  $("#statsWeekDate").addEventListener("change", renderStats);
-
-  $("#orderList").addEventListener("click", handleCardAction);
-  $("#historyList").addEventListener("click", handleCardAction);
-
-  $("#confirmCancel").addEventListener("click", closeConfirm);
-
-  $("#confirmPhotoComplete").addEventListener("click", () => {
-    if (typeof pendingPhotoConfirmAction === "function") {
-      const action = pendingPhotoConfirmAction;
-      closeConfirm();
-      action();
-    }
-  });
-
-  $("#confirmAccept").addEventListener("click", () => {
-    if (typeof pendingConfirmAction === "function") {
-      pendingConfirmAction();
-    }
-
-    closeConfirm();
-  });
-
-  $("#confirmModal").addEventListener("click", (event) => {
-    if (event.target === $("#confirmModal")) closeConfirm();
-  });
-
-  $("#deleteTodayOrders").addEventListener("click", () => {
-    const today = getLocalDate();
-    const count = getOrders().filter((order) => order.date === today).length;
-    if (!count) {
-      showToast("Hôm nay chưa có đơn hàng để xóa.");
-      return;
-    }
-    openConfirm({
-      title: "Xóa tất cả đơn hôm nay?",
-      message: `Thao tác này sẽ xóa ${count} đơn được tạo hôm nay. Dữ liệu ngày khác vẫn được giữ lại. Bạn có chắc chắn không?`,
-      type: "cancel",
-      onAccept: () => {
-        saveOrders(getOrders().filter((order) => order.date !== today));
-        renderAll();
-        showToast("Đã xóa toàn bộ đơn hàng hôm nay.");
-      }
-    });
-  });
-
-  $("#resetAllOrders").addEventListener("click", () => {
-    const count = getOrders().length;
-    if (!count) {
-      showToast("Dữ liệu đã trống, không cần đặt lại.");
-      return;
-    }
-    openConfirm({
-      title: "Đặt lại toàn bộ dữ liệu?",
-      message: `Thao tác này sẽ xóa toàn bộ ${count} đơn hàng đã lưu trên thiết bị, bao gồm cả lịch sử các ngày trước. Không thể hoàn tác. Bạn có muốn bắt đầu lại từ đầu?`,
-      type: "cancel",
-      onAccept: () => {
-        saveOrders([]);
-        renderAll();
-        showToast("Đã đặt lại dữ liệu. Sẵn sàng cho ca làm mới.");
-      }
-    });
-  });
-
-}
-
-function initializeApp() {
-  initializeTheme();
-  cleanOldOrders();
-  $("#historyDate").value = getLocalDate();
-
-  initEvents();
-  renderAll();
-
-  const splash = $("#splashScreen");
-  window.setTimeout(() => {
-    splash?.classList.add("splash-hidden");
-    document.body.classList.add("app-ready");
-    window.setTimeout(() => splash?.remove(), 450);
-  }, 1700);
-}
-
-document.addEventListener("DOMContentLoaded", initializeApp);
