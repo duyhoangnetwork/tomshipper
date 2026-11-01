@@ -1,5 +1,4 @@
 const STORAGE_KEY = "tom_shipper_orders_v2";
-const THEME_STORAGE_KEY = "tom_shipper_theme_v1";
 const MAX_STORAGE_DAYS = 180;
 
 let pendingConfirmAction = null;
@@ -51,6 +50,15 @@ function escapeHTML(value = "") {
 
     return entities[character];
   });
+}
+
+function normalizeSearchText(value = "") {
+  return String(value)
+    .trim()
+    .toLocaleLowerCase("vi-VN")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/g, "d");
 }
 
 function cleanPhone(value = "") {
@@ -238,10 +246,13 @@ function buildOrderCard(order, isHistory = false) {
             ` : ""}
 
             ${order.proofImage ? `
-              <button class="proof-thumbnail-button" type="button" data-action="view-proof" data-id="${order.id}" aria-label="Xem ảnh xác nhận giao hàng">
-                <img class="proof-thumbnail" src="${order.proofImage}" alt="Ảnh xác nhận giao hàng" />
-                <span>Ảnh xác nhận giao hàng · Nhấn để phóng to</span>
-              </button>
+              <div class="proof-thumbnail-wrap">
+                <button class="proof-thumbnail-button" type="button" data-action="view-proof" data-id="${order.id}" aria-label="Xem ảnh xác nhận giao hàng">
+                  <img class="proof-thumbnail" src="${order.proofImage}" alt="Ảnh xác nhận giao hàng" />
+                  <span>Ảnh xác nhận giao hàng · Nhấn để phóng to</span>
+                </button>
+                <button class="delete-proof-image" type="button" data-action="delete-proof" data-id="${order.id}" aria-label="Xóa ảnh xác thực" title="Xóa ảnh xác thực">×</button>
+              </div>
             ` : ""}
 
             <div class="payment-row">
@@ -304,20 +315,36 @@ function buildOrderCard(order, isHistory = false) {
 function renderHome() {
   const today = getLocalDate();
   // Trang chủ là danh sách công việc còn mở: không lọc theo ngày tạo.
-  // Vì vậy các đơn pending từ hôm trước vẫn tiếp tục xuất hiện cho đến khi xử lý.
-  const pendingOrders = getOrders().filter((order) => order.status === "pending");
-  const carryoverCount = pendingOrders.filter(
+  // Đơn pending từ hôm trước vẫn xuất hiện cho đến khi xử lý.
+  const allPendingOrders = getOrders().filter((order) => order.status === "pending");
+  const query = normalizeSearchText($("#homeSearch")?.value || "");
+  const pendingOrders = query
+    ? allPendingOrders.filter((order) => normalizeSearchText(order.customerName).includes(query))
+    : allPendingOrders;
+  const carryoverCount = allPendingOrders.filter(
     (order) => getOrderCreatedDate(order) < today
   ).length;
 
   $("#todayLabel").textContent = carryoverCount
     ? `${formatDate(today)} · ${carryoverCount} đơn tồn từ ngày trước`
     : formatDate(today);
-  $("#pendingCountBadge").textContent = `${pendingOrders.length} đơn`;
+  $("#pendingCountBadge").textContent = query
+    ? `${pendingOrders.length}/${allPendingOrders.length} đơn`
+    : `${allPendingOrders.length} đơn`;
   $("#orderList").innerHTML = pendingOrders.map((order) => buildOrderCard(order)).join("");
-  $("#homeEmpty").classList.toggle("hidden", pendingOrders.length > 0);
-}
 
+  const empty = $("#homeEmpty");
+  empty.classList.toggle("hidden", pendingOrders.length > 0);
+  const title = empty.querySelector("h3");
+  const message = empty.querySelector("p");
+  if (query) {
+    title.textContent = "Không tìm thấy khách hàng";
+    message.textContent = `Không có đơn chờ giao nào khớp với “${$("#homeSearch").value.trim()}”.`;
+  } else {
+    title.textContent = "Chưa có đơn chờ giao";
+    message.textContent = "Thêm đơn hàng để bắt đầu hành trình hôm nay.";
+  }
+}
 function addDaysToLocalDate(dateString, dayOffset) {
   const date = new Date(`${dateString}T12:00:00`);
   date.setDate(date.getDate() + dayOffset);
@@ -398,20 +425,33 @@ function renderStats() {
 
 function renderHistory() {
   const selectedDate = $("#historyDate").value || getLocalDate();
+  const query = normalizeSearchText($("#historySearch")?.value || "");
 
   // Lịch sử chỉ lưu các đơn giao thành công; ngày lọc là ngày hoàn thành.
-  const orders = getOrders()
+  const completedForDate = getOrders()
     .filter((order) => order.status === "completed" && getCompletedDate(order) === selectedDate)
     .sort((a, b) => new Date(b.completedAt || b.createdAt || 0) - new Date(a.completedAt || a.createdAt || 0));
+  const orders = query
+    ? completedForDate.filter((order) => normalizeSearchText(order.customerName).includes(query))
+    : completedForDate;
 
   $("#historyList").innerHTML = orders
     .map((order) => buildOrderCard(order, true))
     .join("");
 
-  $("#historyEmpty").classList.toggle("hidden", orders.length > 0);
+  const empty = $("#historyEmpty");
+  empty.classList.toggle("hidden", orders.length > 0);
+  const title = $("#historyEmptyTitle");
+  const message = $("#historyEmptyMessage");
+  if (query) {
+    title.textContent = "Không tìm thấy khách hàng";
+    message.textContent = `Không có đơn hoàn thành nào khớp với “${$("#historySearch").value.trim()}” trong ngày đã chọn.`;
+  } else {
+    title.textContent = "Chưa có lịch sử";
+    message.textContent = "Không tìm thấy đơn hàng trong ngày đã chọn.";
+  }
   updateHistoryExportControls();
 }
-
 function getHistoryExportSelection() {
   const selectedDate = $("#historyDate").value || getLocalDate();
   const range = historyExportScope === "week" ? getWeekRange(selectedDate) : null;
@@ -475,8 +515,8 @@ function changeTab(tabName) {
   activeTabName = tabName;
   $(`.nav-item[data-tab="${tabName}"]`)?.classList.add("active");
 
-  // Nút thêm đơn chỉ xuất hiện ở tab Trang chủ.
-  $("#headerAddButton").classList.toggle("hidden", tabName !== "home");
+  // Nút thêm đơn nổi chỉ xuất hiện ở tab Trang chủ.
+  $("#homeFab").classList.toggle("hidden", tabName !== "home");
 
   if (tabName === "history") renderHistory();
   if (tabName === "stats") renderStats();
@@ -650,6 +690,43 @@ function handleCardAction(event) {
     return;
   }
 
+  if (action === "delete-proof") {
+    openConfirm({
+      title: "Xóa ảnh xác thực?",
+      message: "Bạn có muốn xóa ảnh xác thực này không?",
+      type: "cancel",
+      onAccept: () => {
+        const latestOrders = getOrders();
+        const target = latestOrders.find((item) => item.id === id);
+        if (!target || !target.proofImage) {
+          showToast("Ảnh xác thực không còn tồn tại.");
+          return;
+        }
+
+        // Remove only the image payload and its capture timestamp; preserve
+        // completion status, completion time and every other order field.
+        const updatedOrders = latestOrders.map((item) => {
+          if (item.id !== id) return item;
+          const { proofImage, proofImageAt, ...orderWithoutProof } = item;
+          return orderWithoutProof;
+        });
+
+        try {
+          saveOrders(updatedOrders);
+        } catch (error) {
+          showToast("Không thể cập nhật dữ liệu ảnh. Vui lòng thử lại.");
+          return;
+        }
+
+        if (currentProofOrder?.id === id) closeProofLightbox();
+        currentProofOrder = null;
+        renderAll();
+        showToast("Đã xóa ảnh xác thực.");
+      }
+    });
+    return;
+  }
+
   if (action === "view-proof") {
     openProofLightbox(order);
     return;
@@ -793,152 +870,264 @@ function safeFileName(value = "KhachHang") {
   return normalized.replace(/[^a-zA-Z0-9_-]+/g, "_").replace(/^_+|_+$/g, "") || "KhachHang";
 }
 
+function wrapProofCanvasText(context, value, maxWidth, maxLines = 2) {
+  const text = String(value || "").trim().replace(/\s+/g, " ");
+  if (!text) return [""];
+
+  const words = text.split(/\s+/);
+  const lines = [];
+  let line = "";
+
+  const pushLongWord = (word) => {
+    let part = "";
+    for (const character of word) {
+      const candidate = part + character;
+      if (part && context.measureText(candidate).width > maxWidth) {
+        lines.push(part);
+        part = character;
+        if (lines.length >= maxLines) return false;
+      } else {
+        part = candidate;
+      }
+    }
+    line = part;
+    return true;
+  };
+
+  for (const word of words) {
+    const candidate = line ? `${line} ${word}` : word;
+    if (context.measureText(candidate).width <= maxWidth) {
+      line = candidate;
+      continue;
+    }
+
+    if (line) {
+      lines.push(line);
+      line = "";
+      if (lines.length >= maxLines) break;
+    }
+
+    if (context.measureText(word).width <= maxWidth) {
+      line = word;
+    } else if (!pushLongWord(word)) {
+      break;
+    }
+  }
+
+  if (line && lines.length < maxLines) lines.push(line);
+  const consumed = lines.join(" ");
+  const hasMore = consumed.length < text.length;
+  if (hasMore && lines.length) {
+    let last = lines[lines.length - 1];
+    while (last.length > 1 && context.measureText(`${last}…`).width > maxWidth) {
+      last = last.slice(0, -1);
+    }
+    lines[lines.length - 1] = `${last}…`;
+  }
+  return lines.slice(0, maxLines);
+}
+
+function waitForImageLoad(image) {
+  return new Promise((resolve, reject) => {
+    if (image.complete && image.naturalWidth > 0) {
+      resolve();
+      return;
+    }
+    image.onload = () => resolve();
+    image.onerror = () => reject(new Error("Không thể đọc ảnh xác nhận."));
+  });
+}
+
+async function canvasToPngBlob(canvas) {
+  if (typeof canvas.toBlob === "function") {
+    const blob = await new Promise((resolve, reject) => {
+      canvas.toBlob((value) => value ? resolve(value) : reject(new Error("Không thể kết xuất ảnh PNG.")), "image/png");
+    });
+    return blob;
+  }
+
+  // Fallback for older mobile WebViews without HTMLCanvasElement.toBlob.
+  const dataUrl = canvas.toDataURL("image/png");
+  const response = await fetch(dataUrl);
+  return response.blob();
+}
+
 async function downloadBrandedProof() {
   const order = currentProofOrder;
   if (!order?.proofImage) {
     showToast("Không tìm thấy ảnh xác nhận để tải.");
     return;
   }
-  try {
-    const image = new Image();
-    image.src = order.proofImage;
-    await new Promise((resolve, reject) => {
-      image.onload = resolve;
-      image.onerror = () => reject(new Error("Không thể đọc ảnh xác nhận."));
-    });
 
-    // Canvas 2x-friendly high-resolution PNG with a crisp, square Ocean Blue frame.
-    const maxWidth = 1800;
-    const scale = Math.min(1, maxWidth / image.naturalWidth);
-    const imageWidth = Math.max(1, Math.round(image.naturalWidth * scale));
-    const imageHeight = Math.max(1, Math.round(image.naturalHeight * scale));
+  const downloadButton = $("#downloadProofImage");
+  const originalLabel = downloadButton.innerHTML;
+  downloadButton.disabled = true;
+  downloadButton.textContent = "Đang tạo ảnh…";
+
+  try {
+    // Wait for installed fonts before measuring/drawing labels. The data URL
+    // is decoded by the browser, including mobile camera orientation metadata.
+    if (document.fonts?.ready) await document.fonts.ready;
+
+    const image = new Image();
+    image.decoding = "async";
+    image.src = order.proofImage;
+    await waitForImageLoad(image);
+
+    const sourceWidth = image.naturalWidth;
+    const sourceHeight = image.naturalHeight;
+    if (!sourceWidth || !sourceHeight) throw new Error("Kích thước ảnh không hợp lệ.");
+
+    // Keep the source aspect ratio and cap the longest side for stable memory
+    // use across iOS Safari, Android Chrome and desktop browsers.
+    const maxSide = 1800;
+    const scale = Math.min(1, maxSide / Math.max(sourceWidth, sourceHeight));
+    const imageWidth = Math.max(1, Math.round(sourceWidth * scale));
+    const imageHeight = Math.max(1, Math.round(sourceHeight * scale));
     const border = Math.max(8, Math.round(imageWidth * 0.009));
-    const pad = Math.max(22, Math.round(imageWidth * 0.025));
-    const headerHeight = Math.max(148, Math.round(imageWidth * 0.17));
-    const footerHeight = Math.max(50, Math.round(imageWidth * 0.055));
+    const pad = Math.max(18, Math.round(imageWidth * 0.024));
     const canvas = document.createElement("canvas");
-    canvas.width = imageWidth + (pad + border) * 2;
-    canvas.height = imageHeight + headerHeight + footerHeight + (pad + border) * 2;
-    const ctx = canvas.getContext("2d");
+    const ctx = canvas.getContext("2d", { alpha: false });
     if (!ctx) throw new Error("Thiết bị không hỗ trợ xuất ảnh.");
 
+    const contentWidth = imageWidth;
+    const name = String(order.customerName || "Khách hàng").trim();
+    const address = String(order.address || "Chưa có địa chỉ giao hàng").trim();
+    const completionLabel = formatCompletionTimestamp(order.completedAt) || "Chưa lưu mốc giờ hoàn thành";
+    const fontFamily = 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+
+    const nameFontSize = Math.max(19, Math.min(42, Math.round(imageWidth * 0.031)));
+    const addressFontSize = Math.max(15, Math.min(24, Math.round(imageWidth * 0.018)));
+    const timeFontSize = Math.max(15, Math.min(23, Math.round(imageWidth * 0.018)));
+    const nameLineHeight = Math.round(nameFontSize * 1.22);
+    const addressLineHeight = Math.round(addressFontSize * 1.32);
+    const timeLineHeight = Math.round(timeFontSize * 1.3);
+    const innerTextWidth = Math.max(80, contentWidth);
+
+    ctx.font = `800 ${nameFontSize}px ${fontFamily}`;
+    const nameLines = wrapProofCanvasText(ctx, name, innerTextWidth, 2);
+    ctx.font = `500 ${addressFontSize}px ${fontFamily}`;
+    const addressLines = wrapProofCanvasText(ctx, address || "Chưa có địa chỉ giao hàng", innerTextWidth, 3);
+    ctx.font = `700 ${timeFontSize}px ${fontFamily}`;
+    const timeText = completionLabel;
+    const timeLines = wrapProofCanvasText(ctx, timeText, innerTextWidth - 34, 1);
+
+    const gapAfterName = Math.max(5, Math.round(pad * 0.22));
+    const gapAfterAddress = Math.max(6, Math.round(pad * 0.25));
+    const headerContentHeight = nameLines.length * nameLineHeight
+      + gapAfterName
+      + addressLines.length * addressLineHeight
+      + gapAfterAddress
+      + timeLineHeight;
+    const headerHeight = pad + headerContentHeight + pad;
+    const imageX = border + pad;
+    const imageY = border + headerHeight + pad;
+    const footerHeight = Math.max(52, Math.round(imageWidth * 0.055));
+    const footerGap = pad;
+
+    canvas.width = imageWidth + (border + pad) * 2;
+    canvas.height = border + headerHeight + pad + imageHeight + footerGap + footerHeight + border;
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = "high";
+
+    // Square Ocean Blue frame — deliberately no rounded Canvas corners.
     const ocean = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
     ocean.addColorStop(0, "#075985");
-    ocean.addColorStop(0.55, "#0284c7");
+    ocean.addColorStop(0.52, "#0284c7");
     ocean.addColorStop(1, "#38bdf8");
     ctx.fillStyle = ocean;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // A narrow inner rule keeps all four corners perfectly square.
-    ctx.strokeStyle = "rgba(224,242,254,.72)";
+    ctx.strokeStyle = "rgba(224,242,254,.88)";
     ctx.lineWidth = Math.max(2, Math.round(border * 0.22));
     ctx.strokeRect(border / 2, border / 2, canvas.width - border, canvas.height - border);
 
-    const imageX = pad + border;
-    const imageY = headerHeight + pad + border;
-    const whiteBand = ctx.createLinearGradient(0, border, canvas.width, headerHeight);
-    whiteBand.addColorStop(0, "rgba(7,89,133,.25)");
-    whiteBand.addColorStop(1, "rgba(255,255,255,.06)");
-    ctx.fillStyle = whiteBand;
+    const headerGradient = ctx.createLinearGradient(0, border, canvas.width, border + headerHeight);
+    headerGradient.addColorStop(0, "rgba(7,89,133,.36)");
+    headerGradient.addColorStop(1, "rgba(255,255,255,.10)");
+    ctx.fillStyle = headerGradient;
     ctx.fillRect(border, border, canvas.width - border * 2, headerHeight);
 
-    const left = imageX;
-    const usableWidth = canvas.width - imageX * 2;
-    const name = String(order.customerName || "Khách hàng");
-    const address = String(order.address || "Chưa có địa chỉ giao hàng");
-    const formattedCompletionTime = formatCompletionTimestamp(order.completedAt);
-    const completionTimeText = formattedCompletionTime
-      ? `🕒 ${formattedCompletionTime}`
-      : "🕒 Chưa lưu mốc giờ hoàn thành";
-
+    let textY = border + pad;
     ctx.fillStyle = "#ffffff";
     ctx.textAlign = "left";
     ctx.textBaseline = "top";
-    let nameFontSize = Math.max(20, Math.round(imageWidth * 0.029));
-    ctx.font = `800 ${nameFontSize}px system-ui, -apple-system, Segoe UI, sans-serif`;
-    while (ctx.measureText(name).width > usableWidth && nameFontSize > 16) {
-      nameFontSize -= 2;
-      ctx.font = `800 ${nameFontSize}px system-ui, -apple-system, Segoe UI, sans-serif`;
-    }
-    const nameY = border + Math.max(14, Math.round(pad * 0.32));
-    ctx.fillText(name, left, nameY, usableWidth);
-
-    // Wrap the delivery address to at most two lines.
-    const addressFontSize = Math.max(14, Math.round(imageWidth * 0.017));
-    ctx.font = `500 ${addressFontSize}px system-ui, -apple-system, Segoe UI, sans-serif`;
-    ctx.fillStyle = "rgba(255,255,255,.94)";
-    const addressY = nameY + Math.round(nameFontSize * 1.25);
-    const addressLineHeight = Math.round(addressFontSize * 1.3);
-    const addressLines = [];
-    let line = "";
-    let addressOverflowed = false;
-    for (const word of address.split(/\s+/)) {
-      const trial = line ? `${line} ${word}` : word;
-      if (ctx.measureText(trial).width > usableWidth && line) {
-        addressLines.push(line);
-        line = word;
-        if (addressLines.length === 2) {
-          addressOverflowed = true;
-          break;
-        }
-      } else {
-        line = trial;
-      }
-    }
-    if (!addressOverflowed && line) addressLines.push(line);
-    if (addressOverflowed && addressLines.length) {
-      const lastIndex = addressLines.length - 1;
-      let lastLine = addressLines[lastIndex];
-      while (ctx.measureText(`${lastLine}…`).width > usableWidth && lastLine.length > 1) {
-        lastLine = lastLine.slice(0, -1);
-      }
-      addressLines[lastIndex] = `${lastLine}…`;
-    }
-    addressLines.slice(0, 2).forEach((text, index) => {
-      ctx.fillText(text, left, addressY + index * addressLineHeight, usableWidth);
+    ctx.font = `800 ${nameFontSize}px ${fontFamily}`;
+    nameLines.forEach((line) => {
+      ctx.fillText(line, imageX, textY, innerTextWidth);
+      textY += nameLineHeight;
     });
 
-    const timeFontSize = Math.max(14, Math.round(imageWidth * 0.018));
-    ctx.font = `700 ${timeFontSize}px system-ui, -apple-system, Segoe UI, sans-serif`;
-    ctx.fillStyle = "#e0f2fe";
-    const timeY = addressY + Math.max(1, addressLines.length) * addressLineHeight + Math.max(7, Math.round(pad * 0.12));
-    let visibleTimeFontSize = timeFontSize;
-    while (ctx.measureText(completionTimeText).width > usableWidth && visibleTimeFontSize > 12) {
-      visibleTimeFontSize -= 1;
-      ctx.font = `700 ${visibleTimeFontSize}px system-ui, -apple-system, Segoe UI, sans-serif`;
-    }
-    ctx.fillText(completionTimeText, left, timeY, usableWidth);
+    textY += gapAfterName;
+    ctx.font = `500 ${addressFontSize}px ${fontFamily}`;
+    ctx.fillStyle = "rgba(255,255,255,.96)";
+    addressLines.forEach((line) => {
+      ctx.fillText(line, imageX, textY, innerTextWidth);
+      textY += addressLineHeight;
+    });
 
+    textY += gapAfterAddress;
+    const clockCenterX = imageX + 9;
+    const clockCenterY = textY + Math.round(timeFontSize * 0.55);
+    const clockRadius = Math.max(6, Math.round(timeFontSize * 0.36));
+    ctx.strokeStyle = "#e0f2fe";
+    ctx.lineWidth = Math.max(1.8, timeFontSize * 0.085);
+    ctx.beginPath();
+    ctx.arc(clockCenterX, clockCenterY, clockRadius, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(clockCenterX, clockCenterY);
+    ctx.lineTo(clockCenterX, clockCenterY - clockRadius * 0.48);
+    ctx.moveTo(clockCenterX, clockCenterY);
+    ctx.lineTo(clockCenterX + clockRadius * 0.42, clockCenterY + clockRadius * 0.22);
+    ctx.stroke();
+
+    ctx.font = `700 ${timeFontSize}px ${fontFamily}`;
+    ctx.fillStyle = "#e0f2fe";
+    ctx.fillText(timeLines[0] || completionLabel, imageX + 27, textY, innerTextWidth - 27);
+
+    // Draw the photo at its exact aspect ratio — no stretched or cropped edges.
     ctx.fillStyle = "#ffffff";
     ctx.fillRect(imageX, imageY, imageWidth, imageHeight);
     ctx.drawImage(image, imageX, imageY, imageWidth, imageHeight);
 
-    const footerY = imageY + imageHeight + pad;
-    ctx.strokeStyle = "rgba(224,242,254,.55)";
+    const footerY = imageY + imageHeight + footerGap;
+    ctx.strokeStyle = "rgba(224,242,254,.68)";
     ctx.lineWidth = Math.max(1, Math.round(border * 0.18));
     ctx.beginPath();
-    ctx.moveTo(imageX, footerY - Math.max(7, Math.round(pad * 0.28)));
-    ctx.lineTo(imageX + imageWidth, footerY - Math.max(7, Math.round(pad * 0.28)));
+    ctx.moveTo(imageX, footerY - Math.max(7, Math.round(pad * 0.25)));
+    ctx.lineTo(imageX + imageWidth, footerY - Math.max(7, Math.round(pad * 0.25)));
     ctx.stroke();
+
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.font = `500 ${Math.max(12, Math.round(imageWidth * 0.014))}px system-ui, -apple-system, Segoe UI, sans-serif`;
-    ctx.fillStyle = "rgba(255,255,255,.93)";
+    ctx.font = `600 ${Math.max(12, Math.min(21, Math.round(imageWidth * 0.014)))}px ${fontFamily}`;
+    ctx.fillStyle = "rgba(255,255,255,.96)";
     ctx.fillText("Tom Shipper by Duy Hoang Network", canvas.width / 2, footerY + footerHeight / 2, imageWidth);
 
-    const blob = await new Promise((resolve, reject) => canvas.toBlob((value) => value ? resolve(value) : reject(new Error("Không thể xuất PNG.")), "image/png"));
+    const blob = await canvasToPngBlob(canvas);
     const fileName = `XacNhan_Don_${safeFileName(name)}.png`;
-    const imageFile = new File([blob], fileName, { type: "image/png", lastModified: Date.now() });
+    const shareText = `Ảnh xác nhận giao hàng · ${name} · ${completionLabel}`;
 
-    // Hệ điều hành sẽ cho chọn Photos/Gallery hoặc ứng dụng đích; không thể ép trình duyệt tự ghi vào thư viện ảnh.
-    if (navigator.share && navigator.canShare && navigator.canShare({ files: [imageFile] })) {
+    // Use the native share sheet when supported. It lets the user choose
+    // Photos/Gallery; browsers do not grant a silent direct-write permission.
+    if (typeof File === "function" && navigator.share && navigator.canShare) {
+      const imageFile = new File([blob], fileName, { type: "image/png", lastModified: Date.now() });
+      let canShareFile = false;
       try {
-        await navigator.share({ files: [imageFile], title: "Ảnh xác thực giao hàng", text: `Ảnh xác nhận giao hàng · ${name} · ${formattedCompletionTime || "Chưa lưu mốc giờ"}` });
-        showToast("Đã chia sẻ ảnh xác thực. Chọn Lưu hình ảnh nếu được hỗ trợ.");
-        return;
-      } catch (shareError) {
-        // Khi người dùng tự hủy bảng chia sẻ, không tải file thứ hai ngoài ý muốn.
-        if (shareError && shareError.name === "AbortError") return;
+        canShareFile = navigator.canShare({ files: [imageFile] });
+      } catch {
+        canShareFile = false;
+      }
+      if (canShareFile) {
+        try {
+          await navigator.share({ files: [imageFile], title: "Ảnh xác thực giao hàng", text: shareText });
+          showToast("Đã chia sẻ ảnh. Chọn Lưu hình ảnh nếu thiết bị có tùy chọn này.");
+          return;
+        } catch (shareError) {
+          // A deliberate cancel must not trigger a duplicate download.
+          if (shareError?.name === "AbortError") return;
+        }
       }
     }
 
@@ -950,10 +1139,14 @@ async function downloadBrandedProof() {
     document.body.appendChild(link);
     link.click();
     link.remove();
-    window.setTimeout(() => URL.revokeObjectURL(url), 3000);
-    showToast("Đã tạo ảnh PNG để lưu vào thiết bị.");
+    window.setTimeout(() => URL.revokeObjectURL(url), 5000);
+    showToast("Đã tạo ảnh PNG chất lượng cao để lưu vào thiết bị.");
   } catch (error) {
+    console.error("Proof image export failed:", error);
     showToast(error.message || "Không thể lưu ảnh xác thực.");
+  } finally {
+    downloadButton.disabled = false;
+    downloadButton.innerHTML = originalLabel;
   }
 }
 
@@ -1343,41 +1536,26 @@ async function exportHistory() {
   }
 }
 
-function applyTheme(theme, persist = true) {
-  const isDark = theme === "dark";
-  document.body.classList.toggle("dark-mode", isDark);
-  const toggle = $("#themeToggle");
-  if (toggle) {
-    toggle.textContent = isDark ? "☀️" : "🌙";
-    toggle.setAttribute("aria-label", isDark ? "Chuyển sang chế độ sáng" : "Chuyển sang chế độ tối");
-    toggle.setAttribute("aria-pressed", String(isDark));
-    toggle.title = isDark ? "Chuyển sang chế độ sáng" : "Chuyển sang chế độ tối";
-  }
-  const themeColor = document.querySelector('meta[name="theme-color"]');
-  if (themeColor) themeColor.setAttribute("content", isDark ? "#0f172a" : "#0284c7");
-  if (persist) {
-    try { localStorage.setItem(THEME_STORAGE_KEY, isDark ? "dark" : "light"); } catch {}
-  }
-}
-
-function initializeTheme() {
-  let savedTheme = "light";
-  try { savedTheme = localStorage.getItem(THEME_STORAGE_KEY) || "light"; } catch {}
-  applyTheme(savedTheme === "dark" ? "dark" : "light", false);
-}
-
-function toggleTheme() {
-  applyTheme(document.body.classList.contains("dark-mode") ? "light" : "dark");
-}
-
 function initEvents() {
+  const syncVisualViewport = () => {
+    const viewport = window.visualViewport;
+    const viewportHeight = viewport?.height || window.innerHeight;
+    const viewportOffsetTop = viewport?.offsetTop || 0;
+    document.documentElement.style.setProperty("--visual-viewport-height", `${Math.round(viewportHeight)}px`);
+    document.documentElement.style.setProperty("--visual-viewport-offset-top", `${Math.round(viewportOffsetTop)}px`);
+  };
+  syncVisualViewport();
+  window.addEventListener("resize", syncVisualViewport, { passive: true });
+  window.visualViewport?.addEventListener("resize", syncVisualViewport, { passive: true });
+  window.visualViewport?.addEventListener("scroll", syncVisualViewport, { passive: true });
+
   $$(".nav-item").forEach((button) => {
     button.addEventListener("click", () => changeTab(button.dataset.tab));
   });
 
-  ["#headerAddButton", "#emptyAddButton"].forEach((selector) => {
-    $(selector).addEventListener("click", showOrderModal);
-  });
+  $("#homeFab").addEventListener("click", showOrderModal);
+  $("#homeSearch").addEventListener("input", renderHome);
+  $("#historySearch").addEventListener("input", renderHistory);
 
   $("#proofPhotoInput").addEventListener("change", handleProofPhotoSelected);
   $("#closeProofLightbox").addEventListener("click", closeProofLightbox);
@@ -1394,7 +1572,6 @@ function initEvents() {
 
   $("#bulkForm").addEventListener("submit", addBulkOrders);
   $("#manualForm").addEventListener("submit", addManualOrder);
-  $("#themeToggle").addEventListener("click", toggleTheme);
 
   $("#historyDate").addEventListener("change", renderHistory);
   $$("[data-export-scope]").forEach((button) => {
@@ -1477,7 +1654,6 @@ function initEvents() {
 }
 
 function initializeApp() {
-  initializeTheme();
   cleanOldOrders();
   $("#historyDate").value = getLocalDate();
 
