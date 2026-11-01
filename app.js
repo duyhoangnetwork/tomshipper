@@ -70,16 +70,44 @@ function saveOrders(orders) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(orders));
 }
 
+function getOrderCreatedDate(order) {
+  if (order && /^\d{4}-\d{2}-\d{2}$/.test(String(order.date || ""))) {
+    return order.date;
+  }
+
+  if (order?.createdAt) {
+    const createdAt = new Date(order.createdAt);
+    if (!Number.isNaN(createdAt.getTime())) return getLocalDate(createdAt);
+  }
+
+  return getLocalDate();
+}
+
+function formatShortDate(dateString) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(dateString || ""))) return "";
+  const [, year, month, day] = dateString.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  return `${day}/${month}`;
+}
+
 function cleanOldOrders() {
   const limitDate = new Date();
   limitDate.setDate(limitDate.getDate() - MAX_STORAGE_DAYS);
   limitDate.setHours(0, 0, 0, 0);
+  const limitLocalDate = getLocalDate(limitDate);
 
   const validOrders = getOrders().filter((order) => {
-    return new Date(`${order.date}T00:00:00`) >= limitDate;
+    // Đơn đang chờ phải được giữ lại vô thời hạn cho đến khi giao xong hoặc bị hủy.
+    if (order.status === "pending") return true;
+
+    // Đơn hoàn thành được tính thời hạn lưu trữ từ ngày hoàn thành thực tế,
+    // không phải ngày tạo đơn (đặc biệt quan trọng với đơn tồn qua nhiều ngày).
+    const retentionDate = order.status === "completed"
+      ? getCompletedDate(order)
+      : getOrderCreatedDate(order);
+    return retentionDate >= limitLocalDate;
   });
 
-  saveOrders(validOrders);
+  if (validOrders.length !== getOrders().length) saveOrders(validOrders);
 }
 
 function saveNewOrders(newOrders) {
@@ -145,91 +173,106 @@ function buildOrderCard(order, isHistory = false) {
   const completionTimeLabel = order.status === "completed"
     ? (formatCompletionTimestamp(order.completedAt) || "Chưa lưu mốc giờ")
     : "";
+  const createdDate = getOrderCreatedDate(order);
+  const carryoverLabel = !isHistory && isPending && createdDate < getLocalDate()
+    ? `[Tạo từ ngày: ${formatShortDate(createdDate)}]`
+    : "";
+  const compactClass = isHistory ? "" : " compact-order-card is-collapsed";
+  const compactSummary = isHistory ? "" : `
+    <button
+      class="compact-summary"
+      type="button"
+      data-action="toggle-card"
+      data-id="${order.id}"
+      aria-expanded="false"
+      aria-label="Mở chi tiết đơn của ${escapeHTML(order.customerName)}"
+    >
+      <span class="compact-summary-copy">
+        <span class="compact-customer-name">${escapeHTML(order.customerName)}</span>
+        <span class="compact-address">${escapeHTML(order.address || "Chưa có địa chỉ")}</span>
+        ${carryoverLabel ? `<span class="carryover-date">${escapeHTML(carryoverLabel)}</span>` : ""}
+      </span>
+      <span class="compact-summary-badges">
+        <span class="compact-status-badge ${status.className}">${isPending ? "Chờ giao" : status.label}</span>
+        <span class="compact-payment-badge ${isCash ? "cod" : "bank"}">${isCash ? "Tiền mặt" : "Bank"}</span>
+      </span>
+      <span class="compact-chevron" aria-hidden="true">⌄</span>
+    </button>
+  `;
 
   return `
-    <article class="order-card ${order.status}">
-      <div class="order-main">
-        <div class="customer-row">
-          <div>
-            <h3 class="customer-name">${escapeHTML(order.customerName)}</h3>
-            <a class="customer-phone" href="${telUrl}">
-              📞 ${escapeHTML(order.phone || "Chưa có số điện thoại")}
-            </a>
-          </div>
-          <span class="status-badge ${status.className}">${status.label}</span>
-        </div>
+    <article class="order-card ${order.status}${compactClass}" data-order-id="${order.id}">
+      ${compactSummary}
+      <div class="order-expanded-content">
+        <div class="order-expanded-inner">
+          <div class="order-main">
+            <div class="customer-row">
+              <div>
+                <h3 class="customer-name">${escapeHTML(order.customerName)}</h3>
+                <a class="customer-phone" href="${telUrl}">
+                  📞 ${escapeHTML(order.phone || "Chưa có số điện thoại")}
+                </a>
+              </div>
+              <span class="status-badge ${status.className}">${status.label}</span>
+            </div>
 
-        ${order.status === "completed" ? `
-          <div class="completion-time" aria-label="Thời gian hoàn thành">
-            <span aria-hidden="true">🕒</span>
-            <span>Đã giao lúc: ${escapeHTML(completionTimeLabel)}</span>
-          </div>
-        ` : ""}
+            ${order.status === "completed" ? `
+              <div class="completion-time" aria-label="Thời gian hoàn thành">
+                <span aria-hidden="true">🕒</span>
+                <span>Đã giao lúc: ${escapeHTML(completionTimeLabel)}</span>
+              </div>
+            ` : ""}
 
-        <p class="order-detail">${escapeHTML(order.detail)}</p>
+            <p class="order-detail">${escapeHTML(order.detail)}</p>
 
-        <div class="address-line">
-          <svg><use href="#i-map"></use></svg>
-          <span>${escapeHTML(order.address)}</span>
-        </div>
+            <div class="address-line">
+              <svg><use href="#i-map"></use></svg>
+              <span>${escapeHTML(order.address)}</span>
+            </div>
 
-        ${
-          order.note
-            ? `
+            ${order.note ? `
               <div class="note-line">
                 <span>📝</span>
                 <span>${escapeHTML(order.note)}</span>
               </div>
-            `
-            : ""
-        }
+            ` : ""}
 
-        ${
-          order.proofImage
-            ? `
+            ${order.proofImage ? `
               <button class="proof-thumbnail-button" type="button" data-action="view-proof" data-id="${order.id}" aria-label="Xem ảnh xác nhận giao hàng">
                 <img class="proof-thumbnail" src="${order.proofImage}" alt="Ảnh xác nhận giao hàng" />
                 <span>Ảnh xác nhận giao hàng · Nhấn để phóng to</span>
               </button>
-            `
-            : ""
-        }
+            ` : ""}
 
-        <div class="payment-row">
-          <div class="payment-type">
-            <svg><use href="#${isCash ? "i-card" : "i-bank"}"></use></svg>
-            <span>${isCash ? "Tiền mặt (COD)" : "Chuyển khoản (Bank)"}</span>
-          </div>
-
-          ${
-            isPending
-              ? `
+            <div class="payment-row">
+              <div class="payment-type">
+                <svg><use href="#${isCash ? "i-card" : "i-bank"}"></use></svg>
+                <span>${isCash ? "Tiền mặt (COD)" : "Chuyển khoản (Bank)"}</span>
+              </div>
+              ${isPending ? `
                 <button
                   class="payment-toggle ${isCash ? "cod" : ""}"
                   data-action="toggle-payment"
                   data-id="${order.id}"
+                  type="button"
                 >
                   ${isCash ? "Đổi sang Bank" : "Khách trả tiền mặt"}
                 </button>
-              `
-              : ""
-          }
-        </div>
-        ${isPending ? `
-          <div class="order-edit-row">
-            <button class="edit-order-button" type="button" data-action="edit-order" data-id="${order.id}">✏️ Sửa đơn</button>
+              ` : ""}
+            </div>
+            ${isPending ? `
+              <div class="order-edit-row">
+                <button class="edit-order-button" type="button" data-action="edit-order" data-id="${order.id}">✏️ Sửa đơn</button>
+              </div>
+            ` : ""}
+            ${isHistory ? `
+              <div class="history-card-actions">
+                <button class="delete-history-order" type="button" data-action="delete-order" data-id="${order.id}" aria-label="Xóa đơn hàng">🗑️ Xóa đơn này</button>
+              </div>
+            ` : ""}
           </div>
-        ` : ""}
-        ${isHistory ? `
-          <div class="history-card-actions">
-            <button class="delete-history-order" type="button" data-action="delete-order" data-id="${order.id}" aria-label="Xóa đơn hàng">🗑️ Xóa đơn này</button>
-          </div>
-        ` : ""}
-      </div>
 
-      ${
-        isPending && !isHistory
-          ? `
+          ${isPending && !isHistory ? `
             <div class="quick-actions">
               <a class="quick-action call" href="${telUrl}">
                 <svg><use href="#i-phone"></use></svg>
@@ -241,30 +284,35 @@ function buildOrderCard(order, isHistory = false) {
                 <span>Bản đồ</span>
               </a>
 
-              <button class="quick-action complete" data-action="complete" data-id="${order.id}">
+              <button class="quick-action complete" type="button" data-action="complete" data-id="${order.id}">
                 <svg><use href="#i-check"></use></svg>
                 <span>Hoàn thành</span>
               </button>
 
-              <button class="quick-action cancel" data-action="cancel" data-id="${order.id}">
+              <button class="quick-action cancel" type="button" data-action="cancel" data-id="${order.id}">
                 <svg><use href="#i-close"></use></svg>
                 <span>Hủy đơn</span>
               </button>
             </div>
-          `
-          : ""
-      }
+          ` : ""}
+        </div>
+      </div>
     </article>
   `;
 }
 
 function renderHome() {
   const today = getLocalDate();
-  const pendingOrders = getOrders().filter(
-    (order) => order.date === today && order.status === "pending"
-  );
+  // Trang chủ là danh sách công việc còn mở: không lọc theo ngày tạo.
+  // Vì vậy các đơn pending từ hôm trước vẫn tiếp tục xuất hiện cho đến khi xử lý.
+  const pendingOrders = getOrders().filter((order) => order.status === "pending");
+  const carryoverCount = pendingOrders.filter(
+    (order) => getOrderCreatedDate(order) < today
+  ).length;
 
-  $("#todayLabel").textContent = formatDate(today);
+  $("#todayLabel").textContent = carryoverCount
+    ? `${formatDate(today)} · ${carryoverCount} đơn tồn từ ngày trước`
+    : formatDate(today);
   $("#pendingCountBadge").textContent = `${pendingOrders.length} đơn`;
   $("#orderList").innerHTML = pendingOrders.map((order) => buildOrderCard(order)).join("");
   $("#homeEmpty").classList.toggle("hidden", pendingOrders.length > 0);
@@ -521,12 +569,26 @@ function showToast(message) {
 }
 
 function handleCardAction(event) {
+  const card = event.target.closest(".compact-order-card");
   const actionButton = event.target.closest("[data-action]");
+
+  // Tapping anywhere in the card's non-control area toggles its details.
+  // Links and buttons keep their own actions and must never toggle the card.
+  if (card && !actionButton) {
+    if (event.target.closest("a, button, input, select, textarea, label")) return;
+    toggleCompactOrderCard(card);
+    return;
+  }
   if (!actionButton) return;
 
   const { action, id } = actionButton.dataset;
-  const order = getOrders().find((item) => item.id === id);
+  if (action === "toggle-card") {
+    const targetCard = actionButton.closest(".compact-order-card");
+    if (targetCard) toggleCompactOrderCard(targetCard);
+    return;
+  }
 
+  const order = getOrders().find((item) => item.id === id);
   if (!order) return;
 
   if (action === "edit-order") {
@@ -558,6 +620,7 @@ function handleCardAction(event) {
         ? "Đã chọn khách trả tiền mặt."
         : "Đã chuyển sang thanh toán Bank."
     );
+    return;
   }
 
   if (action === "complete") {
@@ -584,10 +647,12 @@ function handleCardAction(event) {
         input.click();
       }
     });
+    return;
   }
 
   if (action === "view-proof") {
     openProofLightbox(order);
+    return;
   }
 
   if (action === "cancel") {
@@ -600,6 +665,21 @@ function handleCardAction(event) {
         showToast("Đơn hàng đã được hủy.");
       }
     });
+  }
+}
+
+function toggleCompactOrderCard(card) {
+  if (!card) return;
+  const isExpanded = card.classList.toggle("is-expanded");
+  card.classList.toggle("is-collapsed", !isExpanded);
+  const toggle = card.querySelector('[data-action="toggle-card"]');
+  if (toggle) {
+    toggle.setAttribute("aria-expanded", String(isExpanded));
+    const customerName = toggle.querySelector(".compact-customer-name")?.textContent || "đơn hàng";
+    toggle.setAttribute(
+      "aria-label",
+      `${isExpanded ? "Thu gọn" : "Mở chi tiết"} đơn của ${customerName}`
+    );
   }
 }
 
