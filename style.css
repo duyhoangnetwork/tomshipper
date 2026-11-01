@@ -1453,3 +1453,188 @@ body.dark-mode .history-export-format select { color: #eaf2ff; background: #0d18
   .history-export-format { grid-template-columns: 1fr auto; align-items: center; }
   .history-export-format select { width: 120px; }
 }
+
+/* Trang chủ: thẻ đơn thu gọn, chạm để mở/đóng chi tiết. */
+.order-card.compact-order-card {
+  border-radius: 15px;
+  transition: border-color .22s ease, box-shadow .22s ease, transform .22s ease;
+}
+.compact-summary {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  min-height: 68px;
+  align-items: center;
+  gap: 9px;
+  padding: 10px 12px;
+  color: inherit;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  font: inherit;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.compact-summary:focus-visible {
+  outline: 3px solid rgba(14, 165, 233, .55);
+  outline-offset: -3px;
+  border-radius: 14px;
+}
+.compact-summary-copy {
+  display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
+  flex-direction: column;
+  gap: 3px;
+}
+.compact-customer-name {
+  overflow: hidden;
+  color: #0f2c43;
+  font-size: .91rem;
+  font-weight: 850;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.compact-address {
+  display: block;
+  overflow: hidden;
+  max-width: 100%;
+  color: #64748b;
+  font-size: .71rem;
+  font-weight: 650;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.compact-summary-badges {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: flex-end;
+  flex-direction: column;
+  gap: 4px;
+}
+.compact-status-badge,
+.compact-payment-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 20px;
+  padding: 3px 7px;
+  border-radius: 999px;
+  font-size: .61rem;
+  font-weight: 850;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+.compact-status-badge.status-pending {
+  color: #92400e;
+  background: #fef3c7;
+}
+.compact-status-badge.status-completed {
+  color: #166534;
+  background: #dcfce7;
+}
+.compact-status-badge.status-cancelled {
+  color: #991b1b;
+  background: #fee2e2;
+}
+.compact-payment-badge.cod {
+  color: #9a3412;
+  background: #ffedd5;
+}
+.compact-payment-badge.bank {
+  color: #075985;
+  background: #e0f2fe;
+}
+.compact-chevron {
+  display: inline-flex;
+  flex: 0 0 22px;
+  width: 22px;
+  height: 22px;
+  align-items: center;
+  justify-content: center;
+  color: #64748b;
+  background: rgba(148, 163, 184, .13);
+  border-radius: 50%;
+  font-size: 1.1rem;
+  line-height: 1;
+  transition: transform .28s ease, background .2s ease;
+}
+.compact-order-card.is-expanded .compact-summary {
+  border-bottom: 1px solid rgba(186, 230, 253, .75);
+}
+.compact-order-card.is-expanded .compact-chevron {
+  transform: rotate(180deg);
+  background: rgba(14, 165, 233, .13);
+}
+.order-expanded-content {
+  display: grid;
+  grid-template-rows: 1fr;
+  opacity: 1;
+  transform: translateY(0);
+  transition: grid-template-rows .34s cubic-bezier(.2, .75, .25, 1),
+              opacity .24s ease,
+              transform .30s ease;
+}
+.order-expanded-inner {
+  min-height: 0;
+  overflow: hidden;
+}
+.compact-order-card.is-collapsed .order-expanded-content {
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transform: translateY(-7px);
+  pointer-events: none;
+}
+.compact-order-card.is-expanded {
+  box-shadow: 0 9px 25px rgba(8, 47, 73, .09);
+}
+@media (hover: hover) {
+  .compact-order-card:not(.is-expanded):hover {
+    border-color: #7dd3fc;
+    box-shadow: 0 7px 20px rgba(2, 132, 199, .10);
+  }
+  .compact-summary:hover .compact-chevron { background: rgba(14, 165, 233, .16); }
+}
+@media (max-width: 380px) {
+  .compact-summary { gap: 6px; padding: 9px 10px; }
+  .compact-customer-name { font-size: .85rem; }
+  .compact-address { font-size: .67rem; }
+  .compact-status-badge, .compact-payment-badge { font-size: .57rem; padding-inline: 6px; }
+  .compact-chevron { flex-basis: 19px; width: 19px; height: 19px; }
+}
+body.dark-mode .compact-order-card.is-expanded .compact-summary {
+  border-bottom-color: #2b3b52;
+}
+body.dark-mode .compact-customer-name { color: #eaf2ff; }
+body.dark-mode .compact-address,
+body.dark-mode .compact-chevron { color: #9fb0c7; }
+body.dark-mode .compact-chevron { background: rgba(148, 163, 184, .14); }
+body.dark-mode .compact-payment-badge.cod { color: #fdba74; background: #422719; }
+body.dark-mode .compact-payment-badge.bank { color: #bae6fd; background: #10344a; }
+@media (prefers-reduced-motion: reduce) {
+  .order-expanded-content,
+  .compact-chevron,
+  .compact-order-card,
+  .compact-summary { transition: none !important; }
+}
+
+
+/* Nhãn đơn tồn: ngày tạo ban đầu, luôn hiện ngay ở thẻ thu gọn. */
+.carryover-date {
+  display: inline-flex;
+  align-self: flex-start;
+  max-width: 100%;
+  overflow: hidden;
+  color: #9a6b16;
+  font-size: .62rem;
+  font-weight: 750;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+body.dark-mode .carryover-date {
+  color: #f6c978;
+}
