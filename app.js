@@ -176,8 +176,16 @@ function buildOrderCard(order, isHistory = false) {
   const status = getStatus(order.status);
   const isPending = order.status === "pending";
   const isCash = order.paymentMethod === "cod";
-  const telUrl = `tel:${encodeURIComponent(order.phone)}`;
-  const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(order.address)}`;
+  const phoneNumber = cleanPhone(order.phone || "");
+  const telUrl = phoneNumber ? `tel:${phoneNumber}` : "";
+  const encodedAddress = encodeURIComponent(String(order.address || "").trim());
+  const isAppleDevice = /iPhone|iPad|iPod/i.test(navigator.userAgent)
+    || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  const mapUrl = encodedAddress
+    ? (isAppleDevice
+      ? `https://maps.apple.com/?q=${encodedAddress}`
+      : `https://www.google.com/maps/search/?api=1&query=${encodedAddress}`)
+    : "";
   const completionTimeLabel = order.status === "completed"
     ? (formatCompletionTimestamp(order.completedAt) || "Chưa lưu mốc giờ")
     : "";
@@ -217,9 +225,15 @@ function buildOrderCard(order, isHistory = false) {
             <div class="customer-row">
               <div>
                 <h3 class="customer-name">${escapeHTML(order.customerName)}</h3>
-                <a class="customer-phone" href="${telUrl}">
-                  📞 ${escapeHTML(order.phone || "Chưa có số điện thoại")}
-                </a>
+                ${telUrl ? `
+                  <a class="customer-phone" href="${telUrl}" aria-label="Gọi ${escapeHTML(order.customerName)}">
+                    📞 ${escapeHTML(order.phone)}
+                  </a>
+                ` : `
+                  <span class="customer-phone is-unavailable" aria-disabled="true">
+                    📞 Chưa có số điện thoại
+                  </span>
+                `}
               </div>
               <span class="status-badge ${status.className}">${status.label}</span>
             </div>
@@ -285,15 +299,29 @@ function buildOrderCard(order, isHistory = false) {
 
           ${isPending && !isHistory ? `
             <div class="quick-actions">
-              <a class="quick-action call" href="${telUrl}">
-                <svg><use href="#i-phone"></use></svg>
-                <span>Gọi ngay</span>
-              </a>
+              ${telUrl ? `
+                <a class="quick-action call" href="${telUrl}" aria-label="Gọi ngay cho ${escapeHTML(order.customerName)}">
+                  <svg><use href="#i-phone"></use></svg>
+                  <span>Gọi ngay</span>
+                </a>
+              ` : `
+                <button class="quick-action call is-unavailable" type="button" disabled aria-disabled="true">
+                  <svg><use href="#i-phone"></use></svg>
+                  <span>Chưa có SĐT</span>
+                </button>
+              `}
 
-              <a class="quick-action map" href="${mapUrl}" target="_blank" rel="noopener">
-                <svg><use href="#i-map"></use></svg>
-                <span>Bản đồ</span>
-              </a>
+              ${mapUrl ? `
+                <a class="quick-action map" href="${mapUrl}" target="_blank" rel="noopener" aria-label="Mở bản đồ đến ${escapeHTML(order.address)}">
+                  <svg><use href="#i-map"></use></svg>
+                  <span>Bản đồ</span>
+                </a>
+              ` : `
+                <button class="quick-action map is-unavailable" type="button" disabled aria-disabled="true">
+                  <svg><use href="#i-map"></use></svg>
+                  <span>Thiếu địa chỉ</span>
+                </button>
+              `}
 
               <button class="quick-action complete" type="button" data-action="complete" data-id="${order.id}">
                 <svg><use href="#i-check"></use></svg>
@@ -1548,6 +1576,29 @@ function initEvents() {
   window.addEventListener("resize", syncVisualViewport, { passive: true });
   window.visualViewport?.addEventListener("resize", syncVisualViewport, { passive: true });
   window.visualViewport?.addEventListener("scroll", syncVisualViewport, { passive: true });
+
+  // Best-effort short haptic feedback on devices that expose the Vibration API.
+  // iOS Safari does not expose it, so the CSS press animation remains the fallback.
+  document.addEventListener("pointerdown", (event) => {
+    const control = event.target.closest("button, a.quick-action, .compact-summary");
+    const surface = event.target.closest(".order-card, .stat-card, .weekly-chart-card, .history-export-card");
+    if (surface) {
+      surface.classList.add("is-touching");
+      window.setTimeout(() => surface.classList.remove("is-touching"), 360);
+    }
+    if (control && event.pointerType === "touch" && typeof navigator.vibrate === "function") {
+      try { navigator.vibrate(8); } catch { /* Haptics are optional. */ }
+    }
+  }, { passive: true });
+
+  let scrollSheenTimer = 0;
+  window.addEventListener("scroll", () => {
+    document.body.classList.add("is-scrolling");
+    window.clearTimeout(scrollSheenTimer);
+    scrollSheenTimer = window.setTimeout(() => {
+      document.body.classList.remove("is-scrolling");
+    }, 220);
+  }, { passive: true });
 
   $$(".nav-item").forEach((button) => {
     button.addEventListener("click", () => changeTab(button.dataset.tab));
