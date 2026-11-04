@@ -4,11 +4,9 @@
   <meta charset="UTF-8" />
   <meta
     name="viewport"
-    content="width=device-width, initial-scale=1, viewport-fit=cover"
+    content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"
   />
   <meta name="theme-color" content="#0284c7" />
-  <meta name="color-scheme" content="light dark" />
-  <meta name="description" content="Tom Shipper by Duy Hoang Network — quản lý đơn giao hàng với giao diện Liquid Glass." />
   <title>Tom shipper</title>
 
   <script src="https://cdn.tailwindcss.com"></script>
@@ -40,10 +38,6 @@
     <symbol id="i-plus" viewBox="0 0 24 24">
       <path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
     </symbol>
-    <symbol id="i-search" viewBox="0 0 24 24">
-      <circle cx="10.8" cy="10.8" r="6.8" fill="none" stroke="currentColor" stroke-width="2"/>
-      <path d="m16 16 4.2 4.2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-    </symbol>
     <symbol id="i-phone" viewBox="0 0 24 24">
       <path d="M5.5 3.5 8.2 3a1.8 1.8 0 0 1 2 1.2l.9 3a1.8 1.8 0 0 1-.5 1.8L9 10.6a14 14 0 0 0 4.4 4.4l1.6-1.6a1.8 1.8 0 0 1 1.8-.5l3 1a1.8 1.8 0 0 1 1.2 2l-.5 2.7a2.4 2.4 0 0 1-2.4 2C10.3 20.6 3.4 13.7 3.4 5.9a2.4 2.4 0 0 1 2.1-2.4Z" fill="none" stroke="currentColor" stroke-width="2"/>
     </symbol>
@@ -68,12 +62,16 @@
 
   <main class="app-shell">
     <header class="app-header">
-      <div class="app-header-brand">
+      <div>
         <p>Quản lý giao hàng</p>
         <h1>Tom shipper</h1>
-        <span class="header-glass-caption">by Duy Hoang Network</span>
       </div>
-      <span class="header-glass-orb" aria-hidden="true"></span>
+      <div class="header-actions">
+        <button id="themeToggle" class="theme-toggle" type="button" aria-label="Chuyển sang chế độ tối" title="Chuyển giao diện sáng/tối">🌙</button>
+        <button id="headerAddButton" class="header-add" type="button" aria-label="Thêm đơn">
+          <svg><use href="#i-plus"></use></svg>
+        </button>
+      </div>
     </header>
 
     <section id="homeTab" class="tab-content active">
@@ -85,11 +83,6 @@
         <span id="pendingCountBadge" class="count-badge">0 đơn</span>
       </div>
 
-      <label class="search-field home-search" aria-label="Tìm đơn đang giao theo tên khách hàng">
-        <svg aria-hidden="true"><use href="#i-search"></use></svg>
-        <input id="homeSearch" type="search" inputmode="search" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Tìm theo tên khách hàng..." />
-      </label>
-
       <div id="orderList" class="order-list"></div>
 
       <div id="homeEmpty" class="empty-state hidden">
@@ -98,6 +91,10 @@
         </div>
         <h3>Chưa có đơn chờ giao</h3>
         <p>Thêm đơn hàng để bắt đầu hành trình hôm nay.</p>
+        <button id="emptyAddButton" class="primary-button">
+          <svg><use href="#i-plus"></use></svg>
+          Thêm đơn hàng
+        </button>
       </div>
     </section>
 
@@ -176,11 +173,6 @@
         </div>
       </div>
 
-      <label class="search-field history-search" aria-label="Tìm lịch sử theo tên khách hàng">
-        <svg aria-hidden="true"><use href="#i-search"></use></svg>
-        <input id="historySearch" type="search" inputmode="search" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Tìm tên khách trong lịch sử..." />
-      </label>
-
       <label class="date-filter">
         <span>Chọn ngày</span>
         <input id="historyDate" type="date" />
@@ -222,15 +214,12 @@
         <div class="empty-icon">
           <svg><use href="#i-history"></use></svg>
         </div>
-        <h3 id="historyEmptyTitle">Chưa có lịch sử</h3>
-        <p id="historyEmptyMessage">Không tìm thấy đơn hàng trong ngày đã chọn.</p>
+        <h3>Chưa có lịch sử</h3>
+        <p>Không tìm thấy đơn hàng trong ngày đã chọn.</p>
       </div>
     </section>
   </main>
 
-  <button id="homeFab" class="home-fab" type="button" aria-label="Thêm đơn hàng mới" title="Thêm đơn hàng">
-    <svg aria-hidden="true"><use href="#i-plus"></use></svg>
-  </button>
 
   <nav class="bottom-nav">
     <button class="nav-item active" data-tab="home">
