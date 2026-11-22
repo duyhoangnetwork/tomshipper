@@ -5,17 +5,47 @@
      CONSTANTS & STORAGE KEYS
      ========================================================================== */
   const STORAGE_ORDERS_KEY = 'tom_shipper_orders_v1';
+  const STORAGE_SETTINGS_KEY = 'tom_shipper_settings_v1';
+  const STORAGE_PROFILE_KEY = 'tom_shipper_profile_v1';
   const STORAGE_IMG_PREFIX = 'tom_shipper_img_';
   const LEGACY_KEYS = ['orders', 'tom_shipper_orders', 'shipper_orders'];
   const MAX_IMAGE_DIM = 1200;
+  const AVATAR_IMAGE_DIM = 360;
   const JPEG_QUALITY = 0.78;
+
+  const DEFAULT_SETTINGS = {
+    theme: 'auto', // 'auto' | 'light' | 'dark'
+    accentColor: 'blue', // 'blue' | 'orange' | 'green' | 'black' | 'white'
+    bgStyle: 'ocean', // 'ocean' | 'neutral' | 'midnight'
+    uiRadius: 'soft', // 'soft' | 'rounded' | 'sharp'
+    defaultStartTab: 'home', // 'home' | 'stats' | 'history' | 'profile'
+    largeText: false,
+    compactCards: false,
+    liquidGlass: true,
+    glassBlur: 'medium', // 'light' | 'medium' | 'strong'
+    touchRipple: true,
+    cardMotion: true,
+    orderSort: 'newest', // 'newest' | 'oldest' | 'carryover'
+    singleExpand: false,
+    autoExpandNew: false,
+    showPaymentBadge: true,
+    highlightCarryover: true,
+    warnMissingPhoto: false,
+    showCollapseButton: true,
+    hapticFeedback: true,
+    confirmActions: true,
+    defaultPayment: 'cash', // 'cash' | 'transfer'
+    mapProvider: 'auto' // 'auto' | 'google' | 'apple'
+  };
 
   let idSequence = 0;
   let currentDayKey = getLocalDateKey(Date.now());
 
   const state = {
     orders: [],
-    activeTab: 'home', // 'stats' | 'home' | 'history'
+    settings: Object.assign({}, DEFAULT_SETTINGS),
+    profile: null,
+    activeTab: 'home', // 'home' | 'stats' | 'history' | 'profile' | 'settings'
     expandedIds: new Set(),
     homeSearch: '',
     historySearch: '',
@@ -32,9 +62,11 @@
     seenHomeCardIds: new Set(),
     seenHistoryCardIds: new Set(),
     tabScrollPositions: {
-      stats: 0,
       home: 0,
-      history: 0
+      stats: 0,
+      history: 0,
+      profile: 0,
+      settings: 0
     }
   };
 
@@ -47,7 +79,9 @@
     pages: {
       home: document.getElementById('page-home'),
       stats: document.getElementById('page-stats'),
-      history: document.getElementById('page-history')
+      history: document.getElementById('page-history'),
+      profile: document.getElementById('page-profile'),
+      settings: document.getElementById('page-settings')
     },
     fabAdd: document.getElementById('fab-add'),
 
@@ -91,6 +125,41 @@
     historyEmptyTitle: document.getElementById('history-empty-title'),
     historyEmptyDesc: document.getElementById('history-empty-desc'),
 
+    // Profile
+    btnEditProfile: document.getElementById('btn-edit-profile'),
+    btnEditProfileInline: document.getElementById('btn-edit-profile-inline'),
+    profileAvatarImg: document.getElementById('profile-avatar-img'),
+    profileAvatarDefault: document.getElementById('profile-avatar-default'),
+    btnChangeAvatar: document.getElementById('btn-change-avatar'),
+    btnUploadAvatar: document.getElementById('btn-upload-avatar'),
+    btnResetAvatar: document.getElementById('btn-reset-avatar'),
+    avatarInput: document.getElementById('avatar-input'),
+    profileDisplayName: document.getElementById('profile-display-name'),
+    profileRoleBadge: document.getElementById('profile-role-badge'),
+    profileBioText: document.getElementById('profile-bio-text'),
+    profileStatPending: document.getElementById('profile-stat-pending'),
+    profileStatCompleted: document.getElementById('profile-stat-completed'),
+    profileInfoList: document.getElementById('profile-info-list'),
+
+    // Settings
+    settingThemeGroup: document.getElementById('setting-theme-group'),
+    settingAccentGroup: document.getElementById('setting-accent-group'),
+    settingBgGroup: document.getElementById('setting-bg-group'),
+    settingRadiusGroup: document.getElementById('setting-radius-group'),
+    settingStartTabGroup: document.getElementById('setting-start-tab-group'),
+    settingBlurGroup: document.getElementById('setting-blur-group'),
+    settingSortGroup: document.getElementById('setting-sort-group'),
+    settingPaymentGroup: document.getElementById('setting-payment-group'),
+    settingMapGroup: document.getElementById('setting-map-group'),
+    settingToggleBtns: document.querySelectorAll('[data-setting-toggle]'),
+    settingsDataSummary: document.getElementById('settings-data-summary'),
+    btnBackupExport: document.getElementById('btn-backup-export'),
+    btnBackupImport: document.getElementById('btn-backup-import'),
+    importBackupInput: document.getElementById('import-backup-input'),
+    btnClearCancelled: document.getElementById('btn-clear-cancelled'),
+    btnResetSettings: document.getElementById('btn-reset-settings'),
+    btnClearAllOrders: document.getElementById('btn-clear-all-orders'),
+
     // Modals
     modalAdd: document.getElementById('modal-add'),
     formAddOrders: document.getElementById('form-add-orders'),
@@ -107,6 +176,16 @@
     editNote: document.getElementById('edit-note'),
     editPayment: document.getElementById('edit-payment'),
     editErrorMsg: document.getElementById('edit-error-msg'),
+
+    modalProfile: document.getElementById('modal-profile'),
+    formEditProfile: document.getElementById('form-edit-profile'),
+    profileInputName: document.getElementById('profile-input-name'),
+    profileInputHotline: document.getElementById('profile-input-hotline'),
+    profileInputGmail: document.getElementById('profile-input-gmail'),
+    profileInputZalo: document.getElementById('profile-input-zalo'),
+    profileInputVehicle: document.getElementById('profile-input-vehicle'),
+    profileInputArea: document.getElementById('profile-input-area'),
+    profileInputBio: document.getElementById('profile-input-bio'),
 
     modalConfirm: document.getElementById('modal-confirm'),
     confirmTitle: document.getElementById('confirm-title'),
@@ -275,6 +354,13 @@
 
   function buildMapUrl(address) {
     const encoded = encodeURIComponent(address.trim());
+    const provider = state.settings.mapProvider;
+    if (provider === 'apple') {
+      return 'https://maps.apple.com/?q=' + encoded;
+    }
+    if (provider === 'google') {
+      return 'https://www.google.com/maps/search/?api=1&query=' + encoded;
+    }
     if (isAppleDevice()) {
       return 'https://maps.apple.com/?q=' + encoded;
     }
@@ -328,7 +414,15 @@
     edit:
       '<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>',
     camera:
-      '<path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle>'
+      '<path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle>',
+    mail:
+      '<path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline>',
+    message:
+      '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>',
+    truck:
+      '<rect x="1" y="3" width="15" height="13"></rect><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="18.5" r="2.5"></circle>',
+    user:
+      '<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle>'
   };
 
   /* ==========================================================================
@@ -534,6 +628,548 @@
     return null;
   }
 
+  function sanitizeSettings(raw) {
+    const src = raw && typeof raw === 'object' ? raw : {};
+    const theme =
+      src.theme === 'light' || src.theme === 'dark' || src.theme === 'auto'
+        ? src.theme
+        : DEFAULT_SETTINGS.theme;
+    const accentColor =
+      src.accentColor === 'blue' ||
+      src.accentColor === 'orange' ||
+      src.accentColor === 'green' ||
+      src.accentColor === 'black' ||
+      src.accentColor === 'white'
+        ? src.accentColor
+        : DEFAULT_SETTINGS.accentColor;
+    const bgStyle =
+      src.bgStyle === 'ocean' || src.bgStyle === 'neutral' || src.bgStyle === 'midnight'
+        ? src.bgStyle
+        : DEFAULT_SETTINGS.bgStyle;
+    const uiRadius =
+      src.uiRadius === 'soft' || src.uiRadius === 'rounded' || src.uiRadius === 'sharp'
+        ? src.uiRadius
+        : DEFAULT_SETTINGS.uiRadius;
+    const defaultStartTab =
+      src.defaultStartTab === 'home' ||
+      src.defaultStartTab === 'stats' ||
+      src.defaultStartTab === 'history' ||
+      src.defaultStartTab === 'profile'
+        ? src.defaultStartTab
+        : DEFAULT_SETTINGS.defaultStartTab;
+    const glassBlur =
+      src.glassBlur === 'light' || src.glassBlur === 'medium' || src.glassBlur === 'strong'
+        ? src.glassBlur
+        : DEFAULT_SETTINGS.glassBlur;
+    const orderSort =
+      src.orderSort === 'newest' || src.orderSort === 'oldest' || src.orderSort === 'carryover'
+        ? src.orderSort
+        : DEFAULT_SETTINGS.orderSort;
+    const defaultPayment =
+      src.defaultPayment === 'transfer' || src.defaultPayment === 'cash'
+        ? src.defaultPayment
+        : DEFAULT_SETTINGS.defaultPayment;
+    const mapProvider =
+      src.mapProvider === 'google' || src.mapProvider === 'apple' || src.mapProvider === 'auto'
+        ? src.mapProvider
+        : DEFAULT_SETTINGS.mapProvider;
+
+    return {
+      theme: theme,
+      accentColor: accentColor,
+      bgStyle: bgStyle,
+      uiRadius: uiRadius,
+      defaultStartTab: defaultStartTab,
+      largeText: Boolean(src.largeText),
+      compactCards: Boolean(src.compactCards),
+      liquidGlass: src.liquidGlass !== undefined ? Boolean(src.liquidGlass) : DEFAULT_SETTINGS.liquidGlass,
+      glassBlur: glassBlur,
+      touchRipple: src.touchRipple !== undefined ? Boolean(src.touchRipple) : DEFAULT_SETTINGS.touchRipple,
+      cardMotion: src.cardMotion !== undefined ? Boolean(src.cardMotion) : DEFAULT_SETTINGS.cardMotion,
+      orderSort: orderSort,
+      singleExpand: Boolean(src.singleExpand),
+      autoExpandNew: Boolean(src.autoExpandNew),
+      showPaymentBadge:
+        src.showPaymentBadge !== undefined
+          ? Boolean(src.showPaymentBadge)
+          : DEFAULT_SETTINGS.showPaymentBadge,
+      highlightCarryover:
+        src.highlightCarryover !== undefined
+          ? Boolean(src.highlightCarryover)
+          : DEFAULT_SETTINGS.highlightCarryover,
+      warnMissingPhoto: Boolean(src.warnMissingPhoto),
+      showCollapseButton:
+        src.showCollapseButton !== undefined
+          ? Boolean(src.showCollapseButton)
+          : DEFAULT_SETTINGS.showCollapseButton,
+      hapticFeedback:
+        src.hapticFeedback !== undefined ? Boolean(src.hapticFeedback) : DEFAULT_SETTINGS.hapticFeedback,
+      confirmActions:
+        src.confirmActions !== undefined ? Boolean(src.confirmActions) : DEFAULT_SETTINGS.confirmActions,
+      defaultPayment: defaultPayment,
+      mapProvider: mapProvider
+    };
+  }
+
+  function loadSettingsFromStorage() {
+    const rawJson = safeStorageGet(STORAGE_SETTINGS_KEY);
+    if (!rawJson) {
+      state.settings = Object.assign({}, DEFAULT_SETTINGS);
+      return;
+    }
+    try {
+      const parsed = JSON.parse(rawJson);
+      state.settings = sanitizeSettings(parsed);
+    } catch (_) {
+      state.settings = Object.assign({}, DEFAULT_SETTINGS);
+    }
+  }
+
+  function saveSettings() {
+    safeStorageSet(STORAGE_SETTINGS_KEY, JSON.stringify(state.settings));
+  }
+
+  function applySettingsToDocument() {
+    const root = document.documentElement;
+    const s = state.settings;
+    root.setAttribute('data-theme', s.theme);
+    root.setAttribute('data-accent', s.accentColor);
+    root.setAttribute('data-bg', s.bgStyle);
+    root.setAttribute('data-radius', s.uiRadius);
+    root.setAttribute('data-blur', s.glassBlur);
+    root.classList.toggle('no-liquid-glass', !s.liquidGlass);
+    root.classList.toggle('no-card-motion', !s.cardMotion);
+    root.classList.toggle('large-text', Boolean(s.largeText));
+    root.classList.toggle('compact-cards', Boolean(s.compactCards));
+  }
+
+  /* ==========================================================================
+     DRIVER PROFILE PERSISTENCE & RENDERING
+     ========================================================================== */
+  function generateDefaultUsername() {
+    const digits = String(Math.floor(Math.random() * 1000000)).padStart(6, '0');
+    return 'users_' + digits;
+  }
+
+  function sanitizeProfile(raw, fallbackDefaultName) {
+    const src = raw && typeof raw === 'object' ? raw : {};
+    const validDefault =
+      typeof src.defaultName === 'string' && /^users_\d{6}$/.test(src.defaultName.trim())
+        ? src.defaultName.trim()
+        : fallbackDefaultName || generateDefaultUsername();
+    const avatarImage =
+      typeof src.avatarImage === 'string' && src.avatarImage.startsWith('data:image/')
+        ? src.avatarImage
+        : null;
+
+    return {
+      defaultName: validDefault,
+      name: String(src.name || '').trim(),
+      hotline: String(src.hotline || '').trim(),
+      gmail: String(src.gmail || '').trim(),
+      zalo: String(src.zalo || '').trim(),
+      vehicle: String(src.vehicle || '').trim(),
+      area: String(src.area || '').trim(),
+      bio: String(src.bio || '').trim(),
+      avatarImage: avatarImage
+    };
+  }
+
+  function loadProfileFromStorage() {
+    const rawJson = safeStorageGet(STORAGE_PROFILE_KEY);
+    if (!rawJson) {
+      state.profile = sanitizeProfile({}, generateDefaultUsername());
+      saveProfile();
+      return;
+    }
+    try {
+      const parsed = JSON.parse(rawJson);
+      state.profile = sanitizeProfile(parsed);
+      if (!parsed || typeof parsed.defaultName !== 'string' || !/^users_\d{6}$/.test(parsed.defaultName)) {
+        saveProfile();
+      }
+    } catch (_) {
+      state.profile = sanitizeProfile({}, generateDefaultUsername());
+      saveProfile();
+    }
+  }
+
+  function saveProfile() {
+    if (!state.profile) return false;
+    const res = safeStorageSet(STORAGE_PROFILE_KEY, JSON.stringify(state.profile));
+    if (!res.ok) {
+      if (res.quotaExceeded) {
+        showToast('Dung lượng trình duyệt đã đầy, hãy chọn ảnh đại diện nhẹ hơn.', 'error');
+      } else {
+        showToast('Không thể lưu hồ sơ vào bộ nhớ trình duyệt.', 'error');
+      }
+      return false;
+    }
+    return true;
+  }
+
+  function buildZaloHref(zaloInput) {
+    const digits = String(zaloInput || '').replace(/\D/g, '');
+    if (digits.length < 8 || digits.length > 15) return '';
+    return 'https://zalo.me/' + digits;
+  }
+
+  function createProfileInfoRow(iconSvg, label, value, actionHref, actionLabel) {
+    const row = document.createElement('div');
+    row.className = 'profile-info-row';
+
+    const left = document.createElement('div');
+    left.className = 'profile-info-left';
+
+    const iconBox = document.createElement('div');
+    iconBox.className = 'profile-info-icon';
+    iconBox.appendChild(createSvgIcon(iconSvg, 19));
+
+    const textCol = document.createElement('div');
+    textCol.className = 'profile-info-text';
+
+    const lbl = document.createElement('span');
+    lbl.className = 'profile-info-label';
+    lbl.textContent = label;
+
+    const val = document.createElement('span');
+    val.className = 'profile-info-value' + (value ? '' : ' is-muted');
+    val.textContent = value || 'Chưa cập nhật';
+
+    textCol.appendChild(lbl);
+    textCol.appendChild(val);
+    left.appendChild(iconBox);
+    left.appendChild(textCol);
+    row.appendChild(left);
+
+    if (value && actionHref && actionLabel) {
+      const link = document.createElement('a');
+      link.className = 'profile-info-action';
+      link.href = actionHref;
+      if (actionHref.startsWith('http')) {
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+      }
+      link.textContent = actionLabel;
+      row.appendChild(link);
+    }
+
+    return row;
+  }
+
+  function renderProfile() {
+    if (!state.profile) {
+      loadProfileFromStorage();
+    }
+    const p = state.profile;
+    const hasCustomAvatar = Boolean(p.avatarImage);
+
+    if (dom.profileAvatarImg && dom.profileAvatarDefault) {
+      if (hasCustomAvatar) {
+        dom.profileAvatarImg.src = p.avatarImage;
+        dom.profileAvatarImg.hidden = false;
+        dom.profileAvatarDefault.hidden = true;
+      } else {
+        dom.profileAvatarImg.removeAttribute('src');
+        dom.profileAvatarImg.hidden = true;
+        dom.profileAvatarDefault.hidden = false;
+      }
+    }
+
+    if (dom.btnResetAvatar) {
+      dom.btnResetAvatar.hidden = !hasCustomAvatar;
+    }
+
+    if (dom.profileDisplayName) {
+      dom.profileDisplayName.textContent = p.name || p.defaultName;
+    }
+
+    if (dom.profileBioText) {
+      if (p.bio) {
+        dom.profileBioText.textContent = p.bio;
+        dom.profileBioText.hidden = false;
+      } else {
+        dom.profileBioText.textContent = '';
+        dom.profileBioText.hidden = true;
+      }
+    }
+
+    let pendingCount = 0;
+    let completedCount = 0;
+    for (let i = 0; i < state.orders.length; i++) {
+      if (state.orders[i].status === 'pending') pendingCount += 1;
+      else if (state.orders[i].status === 'completed') completedCount += 1;
+    }
+    if (dom.profileStatPending) {
+      dom.profileStatPending.textContent = String(pendingCount);
+    }
+    if (dom.profileStatCompleted) {
+      dom.profileStatCompleted.textContent = String(completedCount);
+    }
+
+    if (dom.profileInfoList) {
+      dom.profileInfoList.innerHTML = '';
+
+      const hotlineHref = sanitizePhoneHref(p.hotline);
+      dom.profileInfoList.appendChild(
+        createProfileInfoRow(ICONS.phone, 'Hotline / Số điện thoại', p.hotline, hotlineHref, 'Gọi')
+      );
+
+      const gmailHref = p.gmail && p.gmail.indexOf('@') !== -1 ? 'mailto:' + p.gmail : '';
+      dom.profileInfoList.appendChild(
+        createProfileInfoRow(ICONS.mail, 'Gmail / Email', p.gmail, gmailHref, 'Gửi thư')
+      );
+
+      const zaloHref = buildZaloHref(p.zalo);
+      dom.profileInfoList.appendChild(
+        createProfileInfoRow(ICONS.message, 'Zalo', p.zalo, zaloHref, 'Mở Zalo')
+      );
+
+      dom.profileInfoList.appendChild(
+        createProfileInfoRow(ICONS.truck, 'Phương tiện & Biển số', p.vehicle)
+      );
+
+      dom.profileInfoList.appendChild(
+        createProfileInfoRow(ICONS.mapPin, 'Khu vực giao hàng', p.area)
+      );
+
+      dom.profileInfoList.appendChild(
+        createProfileInfoRow(ICONS.user, 'Mã tài xế mặc định', p.defaultName)
+      );
+    }
+  }
+
+  function openEditProfileModal() {
+    if (!state.profile) loadProfileFromStorage();
+    const p = state.profile;
+    dom.profileInputName.value = p.name;
+    dom.profileInputHotline.value = p.hotline;
+    dom.profileInputGmail.value = p.gmail;
+    dom.profileInputZalo.value = p.zalo;
+    dom.profileInputVehicle.value = p.vehicle;
+    dom.profileInputArea.value = p.area;
+    dom.profileInputBio.value = p.bio;
+    openModal(dom.modalProfile);
+    dom.profileInputName.focus();
+  }
+
+  function renderSettings() {
+    const s = state.settings;
+
+    if (dom.settingThemeGroup) {
+      dom.settingThemeGroup.querySelectorAll('[data-theme-choice]').forEach(function (btn) {
+        const active = btn.dataset.themeChoice === s.theme;
+        btn.classList.toggle('active', active);
+        btn.setAttribute('aria-checked', active ? 'true' : 'false');
+      });
+    }
+
+    if (dom.settingAccentGroup) {
+      dom.settingAccentGroup.querySelectorAll('[data-accent-choice]').forEach(function (btn) {
+        const active = btn.dataset.accentChoice === s.accentColor;
+        btn.classList.toggle('active', active);
+        btn.setAttribute('aria-checked', active ? 'true' : 'false');
+      });
+    }
+
+    if (dom.settingBgGroup) {
+      dom.settingBgGroup.querySelectorAll('[data-bg-choice]').forEach(function (btn) {
+        const active = btn.dataset.bgChoice === s.bgStyle;
+        btn.classList.toggle('active', active);
+        btn.setAttribute('aria-checked', active ? 'true' : 'false');
+      });
+    }
+
+    if (dom.settingRadiusGroup) {
+      dom.settingRadiusGroup.querySelectorAll('[data-radius-choice]').forEach(function (btn) {
+        const active = btn.dataset.radiusChoice === s.uiRadius;
+        btn.classList.toggle('active', active);
+        btn.setAttribute('aria-checked', active ? 'true' : 'false');
+      });
+    }
+
+    if (dom.settingStartTabGroup) {
+      dom.settingStartTabGroup.querySelectorAll('[data-start-tab-choice]').forEach(function (btn) {
+        const active = btn.dataset.startTabChoice === s.defaultStartTab;
+        btn.classList.toggle('active', active);
+        btn.setAttribute('aria-checked', active ? 'true' : 'false');
+      });
+    }
+
+    if (dom.settingBlurGroup) {
+      dom.settingBlurGroup.querySelectorAll('[data-blur-choice]').forEach(function (btn) {
+        const active = btn.dataset.blurChoice === s.glassBlur;
+        btn.classList.toggle('active', active);
+        btn.setAttribute('aria-checked', active ? 'true' : 'false');
+      });
+    }
+
+    if (dom.settingSortGroup) {
+      dom.settingSortGroup.querySelectorAll('[data-sort-choice]').forEach(function (btn) {
+        const active = btn.dataset.sortChoice === s.orderSort;
+        btn.classList.toggle('active', active);
+        btn.setAttribute('aria-checked', active ? 'true' : 'false');
+      });
+    }
+
+    if (dom.settingPaymentGroup) {
+      dom.settingPaymentGroup.querySelectorAll('[data-payment-choice]').forEach(function (btn) {
+        const active = btn.dataset.paymentChoice === s.defaultPayment;
+        btn.classList.toggle('active', active);
+        btn.setAttribute('aria-checked', active ? 'true' : 'false');
+      });
+    }
+
+    if (dom.settingMapGroup) {
+      dom.settingMapGroup.querySelectorAll('[data-map-choice]').forEach(function (btn) {
+        const active = btn.dataset.mapChoice === s.mapProvider;
+        btn.classList.toggle('active', active);
+        btn.setAttribute('aria-checked', active ? 'true' : 'false');
+      });
+    }
+
+    dom.settingToggleBtns.forEach(function (btn) {
+      const key = btn.dataset.settingToggle;
+      if (!key) return;
+      const isOn = Boolean(s[key]);
+      btn.classList.toggle('is-on', isOn);
+      btn.setAttribute('aria-checked', isOn ? 'true' : 'false');
+    });
+
+    if (dom.settingsDataSummary) {
+      let pending = 0;
+      let completed = 0;
+      let cancelled = 0;
+      let photos = 0;
+      for (let i = 0; i < state.orders.length; i++) {
+        const o = state.orders[i];
+        if (o.status === 'pending') pending += 1;
+        else if (o.status === 'completed') completed += 1;
+        else if (o.status === 'cancelled') cancelled += 1;
+        if (o.proofImage) photos += 1;
+      }
+      dom.settingsDataSummary.textContent =
+        'Tổng ' +
+        state.orders.length +
+        ' đơn (' +
+        pending +
+        ' chờ giao · ' +
+        completed +
+        ' đã giao · ' +
+        cancelled +
+        ' đã hủy · ' +
+        photos +
+        ' ảnh xác nhận)';
+    }
+
+    if (dom.btnClearCancelled) {
+      const hasCancelled = state.orders.some(function (o) {
+        return o.status === 'cancelled';
+      });
+      dom.btnClearCancelled.disabled = !hasCancelled;
+    }
+
+    if (dom.btnClearAllOrders) {
+      dom.btnClearAllOrders.disabled = state.orders.length === 0;
+    }
+  }
+
+  function exportBackupJson() {
+    const backup = {
+      app: 'Tom Shipper',
+      version: 2,
+      exportedAt: Date.now(),
+      settings: state.settings,
+      profile: state.profile,
+      orders: state.orders.map(function (o) {
+        return {
+          id: o.id,
+          name: o.name,
+          phone: o.phone,
+          order: o.order,
+          address: o.address,
+          note: o.note,
+          paymentMethod: o.paymentMethod,
+          status: o.status,
+          createdAt: o.createdAt,
+          completedAt: o.completedAt,
+          cancelledAt: o.cancelledAt,
+          proofImage: o.proofImage || null
+        };
+      })
+    };
+    const blob = new Blob([JSON.stringify(backup, null, 2)], {
+      type: 'application/json;charset=utf-8'
+    });
+    const fileName = 'tom-shipper-backup-' + getLocalDateKey(Date.now()) + '.json';
+    triggerBlobDownload(blob, fileName);
+    showToast('Đã xuất tệp sao lưu JSON (' + state.orders.length + ' đơn)!', 'success');
+  }
+
+  async function importBackupJsonFile(file) {
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const parsed = JSON.parse(text);
+      const rawOrders = Array.isArray(parsed)
+        ? parsed
+        : parsed && Array.isArray(parsed.orders)
+          ? parsed.orders
+          : null;
+
+      if (!rawOrders) {
+        showToast('Tệp sao lưu JSON không đúng định dạng Tom Shipper.', 'error');
+        return;
+      }
+
+      const existingIds = new Set(
+        state.orders.map(function (o) {
+          return o.id;
+        })
+      );
+
+      let addedCount = 0;
+      for (let i = 0; i < rawOrders.length; i++) {
+        const item = rawOrders[i];
+        if (!item || typeof item !== 'object') continue;
+        if (typeof item.id === 'string' && existingIds.has(item.id)) {
+          continue;
+        }
+        const sanitized = sanitizeOrder(item, existingIds);
+        if (sanitized) {
+          state.orders.push(sanitized);
+          addedCount += 1;
+        }
+      }
+
+      if (parsed && parsed.settings && typeof parsed.settings === 'object') {
+        state.settings = sanitizeSettings(parsed.settings);
+        saveSettings();
+        applySettingsToDocument();
+      }
+
+      if (parsed && parsed.profile && typeof parsed.profile === 'object') {
+        state.profile = sanitizeProfile(
+          parsed.profile,
+          state.profile ? state.profile.defaultName : undefined
+        );
+        saveProfile();
+      }
+
+      if (persistOrdersMeta()) {
+        showToast(
+          addedCount > 0
+            ? 'Đã khôi phục ' + addedCount + ' đơn hàng từ tệp JSON!'
+            : 'Dữ liệu đã có sẵn, không có đơn mới được thêm.',
+          'success'
+        );
+      }
+      renderAll();
+    } catch (_) {
+      showToast('Không thể đọc tệp sao lưu JSON.', 'error');
+    }
+  }
+
   /* ==========================================================================
      TOAST & MODALS
      ========================================================================== */
@@ -564,8 +1200,9 @@
   function closeModal(modalEl) {
     if (!modalEl || modalEl.hidden) return;
     const reducedMotion =
-      typeof window.matchMedia === 'function' &&
-      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      !state.settings.cardMotion ||
+      (typeof window.matchMedia === 'function' &&
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches);
 
     const finalizeClose = function () {
       modalEl._closeTimer = null;
@@ -634,7 +1271,7 @@
         order: orderDetail,
         address: address,
         note: note,
-        paymentMethod: 'cash',
+        paymentMethod: state.settings.defaultPayment === 'transfer' ? 'transfer' : 'cash',
         status: 'pending',
         createdAt: Date.now(),
         completedAt: null,
@@ -662,11 +1299,12 @@
     });
   }
 
-  async function compressImageFile(file) {
+  async function compressImageFile(file, maxDimOverride) {
     if (!file || !file.type.startsWith('image/')) {
       throw new Error('Vui lòng chọn tệp hình ảnh hợp lệ.');
     }
 
+    const maxDim = maxDimOverride || MAX_IMAGE_DIM;
     let sourceWidth = 0;
     let sourceHeight = 0;
     let drawable = null;
@@ -698,7 +1336,7 @@
         throw new Error('Ảnh không có kích thước hợp lệ.');
       }
 
-      const scale = Math.min(1, MAX_IMAGE_DIM / Math.max(sourceWidth, sourceHeight));
+      const scale = Math.min(1, maxDim / Math.max(sourceWidth, sourceHeight));
       const targetW = Math.max(1, Math.round(sourceWidth * scale));
       const targetH = Math.max(1, Math.round(sourceHeight * scale));
 
@@ -1022,7 +1660,7 @@
     nameHeading.textContent = order.name;
     topLine.appendChild(nameHeading);
 
-    if (carryover) {
+    if (carryover && state.settings.highlightCarryover) {
       const carryTag = document.createElement('span');
       carryTag.className = 'carryover-tag';
       carryTag.textContent = 'Tạo từ ngày: ' + formatDayMonth(order.createdAt);
@@ -1046,10 +1684,12 @@
     statusBadge.textContent = isHistory ? 'Đã giao' : 'Chờ giao';
     badgesRow.appendChild(statusBadge);
 
-    const payBadge = document.createElement('span');
-    payBadge.className = 'badge badge-payment';
-    payBadge.textContent = getPaymentLabel(order.paymentMethod);
-    badgesRow.appendChild(payBadge);
+    if (state.settings.showPaymentBadge) {
+      const payBadge = document.createElement('span');
+      payBadge.className = 'badge badge-payment';
+      payBadge.textContent = getPaymentLabel(order.paymentMethod);
+      badgesRow.appendChild(payBadge);
+    }
 
     if (order.proofImage) {
       const photoBadge = document.createElement('span');
@@ -1300,14 +1940,16 @@
     }
 
     // Collapse button
-    const collapseBtn = document.createElement('button');
-    collapseBtn.type = 'button';
-    collapseBtn.className =
-      'action-btn action-collapse' + (isHistory ? ' action-collapse-full' : '');
-    collapseBtn.dataset.action = 'toggle-expand';
-    collapseBtn.dataset.orderId = order.id;
-    collapseBtn.textContent = 'Thu gọn thẻ';
-    actionsGrid.appendChild(collapseBtn);
+    if (state.settings.showCollapseButton) {
+      const collapseBtn = document.createElement('button');
+      collapseBtn.type = 'button';
+      collapseBtn.className =
+        'action-btn action-collapse' + (isHistory ? ' action-collapse-full' : '');
+      collapseBtn.dataset.action = 'toggle-expand';
+      collapseBtn.dataset.orderId = order.id;
+      collapseBtn.textContent = 'Thu gọn thẻ';
+      actionsGrid.appendChild(collapseBtn);
+    }
 
     expandedBody.appendChild(actionsGrid);
     card.appendChild(expandedBody);
@@ -1316,6 +1958,7 @@
   }
 
   function applyCardSlideIn(card, enterIndex) {
+    if (!state.settings.cardMotion) return;
     card.classList.add('card-slide-in');
     card.style.setProperty('--enter-index', String(Math.min(enterIndex, 8)));
     card.addEventListener(
@@ -1342,8 +1985,18 @@
       return o.status === 'pending';
     });
 
-    // Sort pending orders: newest created first, or keep intuitive order (carryover clearly badged)
+    // Sort pending orders based on user setting ('newest' | 'oldest' | 'carryover')
+    const sortMode = state.settings.orderSort;
     const sortedPending = pendingOrders.slice().sort(function (a, b) {
+      if (sortMode === 'oldest') {
+        return a.createdAt - b.createdAt;
+      }
+      if (sortMode === 'carryover') {
+        const aCarry = isCarryoverOrder(a) ? 1 : 0;
+        const bCarry = isCarryoverOrder(b) ? 1 : 0;
+        if (aCarry !== bCarry) return bCarry - aCarry;
+        return b.createdAt - a.createdAt;
+      }
       return b.createdAt - a.createdAt;
     });
 
@@ -1366,7 +2019,7 @@
       : 'Tổng đang chờ giao: ' + pendingOrders.length + ' đơn';
     dom.homeSummaryBar.appendChild(countSpan);
 
-    if (carryoverCount > 0) {
+    if (carryoverCount > 0 && state.settings.highlightCarryover) {
       const carrySpan = document.createElement('span');
       carrySpan.className = 'summary-carryover-note tabular-nums';
       carrySpan.textContent = 'Đơn tồn qua ngày: ' + carryoverCount;
@@ -1830,10 +2483,14 @@
       renderStats();
     } else if (state.activeTab === 'history') {
       renderHistory();
+    } else if (state.activeTab === 'profile') {
+      renderProfile();
+    } else if (state.activeTab === 'settings') {
+      renderSettings();
     }
   }
 
-  const TAB_ORDER = { stats: 0, home: 1, history: 2 };
+  const TAB_ORDER = { home: 0, stats: 1, history: 2, profile: 3, settings: 4 };
 
   function switchTab(tabName) {
     if (!dom.pages[tabName]) return;
@@ -1920,6 +2577,9 @@
       if (state.expandedIds.has(orderId)) {
         state.expandedIds.delete(orderId);
       } else {
+        if (state.settings.singleExpand) {
+          state.expandedIds.clear();
+        }
         state.expandedIds.add(orderId);
       }
       renderAll();
@@ -1938,39 +2598,61 @@
     }
 
     if (action === 'complete-order') {
+      const executeComplete = function () {
+        order.status = 'completed';
+        order.completedAt = Date.now();
+        state.expandedIds.delete(order.id);
+        if (persistOrdersMeta()) {
+          showToast('Đã hoàn thành đơn của ' + order.name + '!', 'success');
+        }
+        renderAll();
+      };
+
+      const needsPhotoWarn = Boolean(state.settings.warnMissingPhoto && !order.proofImage);
+
+      if (!state.settings.confirmActions && !needsPhotoWarn) {
+        executeComplete();
+        return;
+      }
+
+      const confirmMsg = needsPhotoWarn
+        ? 'Lưu ý: Đơn hàng của "' +
+          order.name +
+          '" chưa có ảnh xác nhận giao hàng. Bạn vẫn muốn hoàn thành ngay?'
+        : 'Xác nhận đã giao xong đơn hàng của "' + order.name + '"?';
+
       openConfirmDialog({
-        title: 'Xác nhận hoàn thành',
-        message: 'Xác nhận đã giao xong đơn hàng của "' + order.name + '"?',
+        title: needsPhotoWarn ? 'Chưa có ảnh xác nhận' : 'Xác nhận hoàn thành',
+        message: confirmMsg,
         okLabel: 'Hoàn thành',
         okClass: 'btn-success',
-        onConfirm: function () {
-          order.status = 'completed';
-          order.completedAt = Date.now();
-          state.expandedIds.delete(order.id);
-          if (persistOrdersMeta()) {
-            showToast('Đã hoàn thành đơn của ' + order.name + '!', 'success');
-          }
-          renderAll();
-        }
+        onConfirm: executeComplete
       });
       return;
     }
 
     if (action === 'cancel-order') {
+      const executeCancel = function () {
+        order.status = 'cancelled';
+        order.cancelledAt = Date.now();
+        state.expandedIds.delete(order.id);
+        if (persistOrdersMeta()) {
+          showToast('Đã hủy đơn của ' + order.name + '.');
+        }
+        renderAll();
+      };
+
+      if (!state.settings.confirmActions) {
+        executeCancel();
+        return;
+      }
+
       openConfirmDialog({
         title: 'Xác nhận hủy đơn',
         message: 'Bạn chắc chắn muốn hủy đơn hàng của "' + order.name + '"?',
         okLabel: 'Hủy đơn',
         okClass: 'btn-danger',
-        onConfirm: function () {
-          order.status = 'cancelled';
-          order.cancelledAt = Date.now();
-          state.expandedIds.delete(order.id);
-          if (persistOrdersMeta()) {
-            showToast('Đã hủy đơn của ' + order.name + '.');
-          }
-          renderAll();
-        }
+        onConfirm: executeCancel
       });
       return;
     }
@@ -2100,6 +2782,13 @@
       // Prepend newest orders while keeping existing orders intact
       for (let i = result.validOrders.length - 1; i >= 0; i--) {
         state.orders.unshift(result.validOrders[i]);
+      }
+
+      if (state.settings.autoExpandNew && result.validOrders.length > 0) {
+        if (state.settings.singleExpand) {
+          state.expandedIds.clear();
+        }
+        state.expandedIds.add(result.validOrders[0].id);
       }
 
       if (persistOrdersMeta()) {
@@ -2279,6 +2968,286 @@
     dom.btnExportTxt.addEventListener('click', exportHistoryTxt);
     dom.btnExportPdf.addEventListener('click', exportHistoryPdf);
 
+    // Profile Controls
+    if (dom.btnEditProfile) {
+      dom.btnEditProfile.addEventListener('click', openEditProfileModal);
+    }
+
+    if (dom.btnEditProfileInline) {
+      dom.btnEditProfileInline.addEventListener('click', openEditProfileModal);
+    }
+
+    const triggerAvatarPicker = function () {
+      if (!dom.avatarInput) return;
+      dom.avatarInput.value = '';
+      dom.avatarInput.click();
+    };
+
+    if (dom.btnChangeAvatar) {
+      dom.btnChangeAvatar.addEventListener('click', triggerAvatarPicker);
+    }
+
+    if (dom.btnUploadAvatar) {
+      dom.btnUploadAvatar.addEventListener('click', triggerAvatarPicker);
+    }
+
+    if (dom.btnResetAvatar) {
+      dom.btnResetAvatar.addEventListener('click', function () {
+        if (!state.profile) return;
+        state.profile.avatarImage = null;
+        if (saveProfile()) {
+          showToast('Đã khôi phục ảnh đại diện mặc định.', 'success');
+        }
+        renderProfile();
+      });
+    }
+
+    if (dom.avatarInput) {
+      dom.avatarInput.addEventListener('change', async function () {
+        const file = dom.avatarInput.files && dom.avatarInput.files[0];
+        dom.avatarInput.value = '';
+        if (!file) return;
+        try {
+          const compressed = await compressImageFile(file, AVATAR_IMAGE_DIM);
+          if (!state.profile) loadProfileFromStorage();
+          state.profile.avatarImage = compressed;
+          if (saveProfile()) {
+            showToast('Đã cập nhật ảnh đại diện hồ sơ!', 'success');
+          }
+          renderProfile();
+        } catch (err) {
+          showToast((err && err.message) || 'Không thể tải ảnh đại diện.', 'error');
+        }
+      });
+    }
+
+    if (dom.formEditProfile) {
+      dom.formEditProfile.addEventListener('submit', function (e) {
+        e.preventDefault();
+        if (!state.profile) loadProfileFromStorage();
+        state.profile.name = dom.profileInputName.value.trim();
+        state.profile.hotline = dom.profileInputHotline.value.trim();
+        state.profile.gmail = dom.profileInputGmail.value.trim();
+        state.profile.zalo = dom.profileInputZalo.value.trim();
+        state.profile.vehicle = dom.profileInputVehicle.value.trim();
+        state.profile.area = dom.profileInputArea.value.trim();
+        state.profile.bio = dom.profileInputBio.value.trim();
+
+        if (saveProfile()) {
+          closeModal(dom.modalProfile);
+          showToast('Đã lưu thông tin hồ sơ tài xế!', 'success');
+          renderProfile();
+        }
+      });
+    }
+
+    // Settings Controls
+    if (dom.settingThemeGroup) {
+      dom.settingThemeGroup.addEventListener('click', function (e) {
+        const btn = e.target.closest('[data-theme-choice]');
+        if (!btn) return;
+        state.settings.theme = btn.dataset.themeChoice;
+        saveSettings();
+        applySettingsToDocument();
+        renderSettings();
+      });
+    }
+
+    if (dom.settingAccentGroup) {
+      dom.settingAccentGroup.addEventListener('click', function (e) {
+        const btn = e.target.closest('[data-accent-choice]');
+        if (!btn) return;
+        state.settings.accentColor = btn.dataset.accentChoice || 'blue';
+        saveSettings();
+        applySettingsToDocument();
+        renderSettings();
+      });
+    }
+
+    if (dom.settingBgGroup) {
+      dom.settingBgGroup.addEventListener('click', function (e) {
+        const btn = e.target.closest('[data-bg-choice]');
+        if (!btn) return;
+        state.settings.bgStyle = btn.dataset.bgChoice;
+        saveSettings();
+        applySettingsToDocument();
+        renderSettings();
+      });
+    }
+
+    if (dom.settingRadiusGroup) {
+      dom.settingRadiusGroup.addEventListener('click', function (e) {
+        const btn = e.target.closest('[data-radius-choice]');
+        if (!btn) return;
+        state.settings.uiRadius = btn.dataset.radiusChoice || 'soft';
+        saveSettings();
+        applySettingsToDocument();
+        renderSettings();
+      });
+    }
+
+    if (dom.settingStartTabGroup) {
+      dom.settingStartTabGroup.addEventListener('click', function (e) {
+        const btn = e.target.closest('[data-start-tab-choice]');
+        if (!btn) return;
+        state.settings.defaultStartTab = btn.dataset.startTabChoice || 'home';
+        saveSettings();
+        renderSettings();
+      });
+    }
+
+    if (dom.settingBlurGroup) {
+      dom.settingBlurGroup.addEventListener('click', function (e) {
+        const btn = e.target.closest('[data-blur-choice]');
+        if (!btn) return;
+        state.settings.glassBlur = btn.dataset.blurChoice || 'medium';
+        saveSettings();
+        applySettingsToDocument();
+        renderSettings();
+      });
+    }
+
+    if (dom.settingSortGroup) {
+      dom.settingSortGroup.addEventListener('click', function (e) {
+        const btn = e.target.closest('[data-sort-choice]');
+        if (!btn) return;
+        state.settings.orderSort = btn.dataset.sortChoice || 'newest';
+        saveSettings();
+        renderSettings();
+      });
+    }
+
+    if (dom.settingPaymentGroup) {
+      dom.settingPaymentGroup.addEventListener('click', function (e) {
+        const btn = e.target.closest('[data-payment-choice]');
+        if (!btn) return;
+        state.settings.defaultPayment =
+          btn.dataset.paymentChoice === 'transfer' ? 'transfer' : 'cash';
+        saveSettings();
+        renderSettings();
+      });
+    }
+
+    if (dom.settingMapGroup) {
+      dom.settingMapGroup.addEventListener('click', function (e) {
+        const btn = e.target.closest('[data-map-choice]');
+        if (!btn) return;
+        state.settings.mapProvider = btn.dataset.mapChoice || 'auto';
+        saveSettings();
+        renderSettings();
+      });
+    }
+
+    dom.settingToggleBtns.forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        const key = btn.dataset.settingToggle;
+        if (!key || !(key in state.settings)) return;
+        state.settings[key] = !state.settings[key];
+        saveSettings();
+        applySettingsToDocument();
+        renderSettings();
+      });
+    });
+
+    if (dom.btnBackupExport) {
+      dom.btnBackupExport.addEventListener('click', exportBackupJson);
+    }
+
+    if (dom.btnBackupImport && dom.importBackupInput) {
+      dom.btnBackupImport.addEventListener('click', function () {
+        dom.importBackupInput.value = '';
+        dom.importBackupInput.click();
+      });
+
+      dom.importBackupInput.addEventListener('change', function () {
+        const file = dom.importBackupInput.files && dom.importBackupInput.files[0];
+        dom.importBackupInput.value = '';
+        if (file) {
+          importBackupJsonFile(file);
+        }
+      });
+    }
+
+    if (dom.btnClearCancelled) {
+      dom.btnClearCancelled.addEventListener('click', function () {
+        const cancelledOrders = state.orders.filter(function (o) {
+          return o.status === 'cancelled';
+        });
+        if (cancelledOrders.length === 0) return;
+
+        openConfirmDialog({
+          title: 'Dọn đơn đã hủy',
+          message:
+            'Xóa vĩnh viễn ' +
+            cancelledOrders.length +
+            ' đơn đã hủy khỏi bộ nhớ? Đơn chờ giao và lịch sử đã giao vẫn được giữ nguyên.',
+          okLabel: 'Xóa đơn hủy',
+          okClass: 'btn-danger',
+          onConfirm: function () {
+            cancelledOrders.forEach(function (o) {
+              safeStorageRemove(STORAGE_IMG_PREFIX + o.id);
+              state.expandedIds.delete(o.id);
+            });
+            state.orders = state.orders.filter(function (o) {
+              return o.status !== 'cancelled';
+            });
+            if (persistOrdersMeta()) {
+              showToast('Đã dọn ' + cancelledOrders.length + ' đơn đã hủy.', 'success');
+            }
+            renderAll();
+          }
+        });
+      });
+    }
+
+    if (dom.btnClearAllOrders) {
+      dom.btnClearAllOrders.addEventListener('click', function () {
+        if (state.orders.length === 0) return;
+        const total = state.orders.length;
+
+        openConfirmDialog({
+          title: 'Xóa toàn bộ đơn hàng',
+          message:
+            'Xóa vĩnh viễn tất cả ' +
+            total +
+            ' đơn hàng (chờ giao, đã giao, đã hủy) cùng ảnh xác nhận? Hành động này không thể hoàn tác.',
+          okLabel: 'Xóa tất cả',
+          okClass: 'btn-danger',
+          onConfirm: function () {
+            state.orders.forEach(function (o) {
+              safeStorageRemove(STORAGE_IMG_PREFIX + o.id);
+            });
+            state.orders = [];
+            state.expandedIds.clear();
+            state.seenHomeCardIds.clear();
+            state.seenHistoryCardIds.clear();
+            if (persistOrdersMeta()) {
+              showToast('Đã xóa toàn bộ ' + total + ' đơn hàng.', 'success');
+            }
+            renderAll();
+          }
+        });
+      });
+    }
+
+    if (dom.btnResetSettings) {
+      dom.btnResetSettings.addEventListener('click', function () {
+        openConfirmDialog({
+          title: 'Đặt lại cài đặt',
+          message: 'Khôi phục tất cả cài đặt giao diện và Liquid Glass về mặc định?',
+          okLabel: 'Đặt lại',
+          okClass: 'btn-danger',
+          onConfirm: function () {
+            state.settings = Object.assign({}, DEFAULT_SETTINGS);
+            saveSettings();
+            applySettingsToDocument();
+            renderSettings();
+            showToast('Đã đặt lại cài đặt về mặc định.', 'success');
+          }
+        });
+      });
+    }
+
     // Midnight / Day Rollover Watcher (Carryover safety while tab stays open)
     setInterval(function () {
       const latestDay = getLocalDateKey(Date.now());
@@ -2297,23 +3266,24 @@
      LIQUID TOUCH HIGHLIGHT (LIGHTWEIGHT POINTER-REACTIVE SPECULAR SHEEN)
      ========================================================================== */
   function initLiquidTouchHighlights() {
-    if (
-      typeof window.matchMedia === 'function' &&
-      window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    ) {
-      return;
-    }
-
     const INTERACTIVE_SELECTOR =
-      '.order-card, .fab, .nav-item, .action-btn, .btn, .seg-btn, .chip-btn, .btn-export, .btn-outline-sm, .modal-close, .search-box';
+      '.order-card, .fab, .nav-item, .action-btn, .btn, .seg-btn, .chip-btn, .btn-export, .btn-outline-sm, .modal-close, .search-box, .profile-edit-link, .profile-avatar-edit-btn, .profile-info-action';
     const RIPPLE_SELECTOR =
-      '.fab, .nav-item, .action-btn, .btn, .seg-btn, .chip-btn, .btn-export, .btn-outline-sm, .card-compact-trigger';
+      '.fab, .nav-item, .action-btn, .btn, .seg-btn, .chip-btn, .btn-export, .btn-outline-sm, .card-compact-trigger, .profile-edit-link, .profile-avatar-edit-btn, .profile-info-action';
     let activeEl = null;
     let clearTimer = null;
     let rafPending = false;
     let lastMoveEvent = null;
 
+    function isSystemReducedMotion() {
+      return (
+        typeof window.matchMedia === 'function' &&
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches
+      );
+    }
+
     function triggerLightHaptic() {
+      if (!state.settings.hapticFeedback) return;
       try {
         if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
           navigator.vibrate(8);
@@ -2370,15 +3340,20 @@
     document.addEventListener(
       'pointerdown',
       function (e) {
+        if (e.pointerType !== 'mouse') {
+          triggerLightHaptic();
+        }
+        if (!state.settings.touchRipple || isSystemReducedMotion()) {
+          clearActiveLit();
+          return;
+        }
+
         const target = e.target && e.target.closest ? e.target.closest(INTERACTIVE_SELECTOR) : null;
         clearActiveLit();
         if (target) {
           activeEl = target;
           applyLightPosition(target, e.clientX, e.clientY);
           target.classList.add('is-lit');
-          if (e.pointerType !== 'mouse') {
-            triggerLightHaptic();
-          }
           clearTimer = setTimeout(clearActiveLit, 420);
         }
 
@@ -2393,6 +3368,7 @@
     document.addEventListener(
       'pointermove',
       function (e) {
+        if (!state.settings.touchRipple || isSystemReducedMotion()) return;
         if (e.pointerType !== 'mouse' && !activeEl) return;
         lastMoveEvent = e;
         if (rafPending) return;
@@ -2516,56 +3492,9 @@
   }
 
   /* ==========================================================================
-     SUBTLE BRAND BACKGROUND PARALLAX (GPU-COMPOSITED, rAF THROTTLED)
-     ========================================================================== */
-  function initBrandParallax() {
-    if (
-      typeof window.matchMedia === 'function' &&
-      window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    ) {
-      return;
-    }
-
-    const rootStyle = document.documentElement.style;
-    let ticking = false;
-
-    function updateParallax() {
-      ticking = false;
-      const scrollY = Math.max(0, window.scrollY || window.pageYOffset || 0);
-      const ySlow = Math.min(34, scrollY * 0.032);
-      const yMid = Math.min(48, scrollY * 0.048);
-      const yBubbles = Math.min(24, scrollY * 0.022);
-      rootStyle.setProperty('--bg-parallax-slow', -ySlow.toFixed(1) + 'px');
-      rootStyle.setProperty('--bg-parallax-y', -yMid.toFixed(1) + 'px');
-      rootStyle.setProperty('--bg-parallax-bubbles', -yBubbles.toFixed(1) + 'px');
-    }
-
-    window.addEventListener(
-      'scroll',
-      function () {
-        if (ticking) return;
-        ticking = true;
-        window.requestAnimationFrame(updateParallax);
-      },
-      { passive: true }
-    );
-  }
-
-  /* ==========================================================================
      BRAND LOGO OFFLINE FALLBACK
      ========================================================================== */
   function initBrandLogoFallback() {
-    const bgLogo = document.getElementById('dhn-bg-logo');
-    const bgFallback = document.getElementById('dhn-bg-fallback');
-    if (bgLogo) {
-      bgLogo.addEventListener('error', function () {
-        bgLogo.hidden = true;
-        if (bgFallback) {
-          bgFallback.hidden = false;
-        }
-      });
-    }
-
     const footerLogo = document.getElementById('footer-dhn-logo');
     if (footerLogo) {
       footerLogo.addEventListener('error', function () {
@@ -2578,13 +3507,15 @@
      BOOTSTRAP
      ========================================================================== */
   function init() {
+    loadSettingsFromStorage();
+    applySettingsToDocument();
+    loadProfileFromStorage();
     loadOrdersFromStorage();
     bindEvents();
     initLiquidTouchHighlights();
     initMobileKeyboardUX();
-    initBrandParallax();
     initBrandLogoFallback();
-    switchTab('home');
+    switchTab(state.settings.defaultStartTab || 'home');
   }
 
   init();
