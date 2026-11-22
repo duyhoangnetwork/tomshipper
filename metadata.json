@@ -1,0 +1,6 @@
+{
+  "name": "Tom Shipper",
+  "description": "Ứng dụng quản lý giao hàng dành cho shipper với khả năng hoạt động độc lập, lưu trữ bền vững, thống kê ngày/tuần và xuất ảnh xác nhận Canvas.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}

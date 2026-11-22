@@ -1,0 +1,973 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#087EC3" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#063B70" media="(prefers-color-scheme: dark)" />
+    <title>Tom Shipper — Quản Lý Giao Hàng</title>
+    <meta
+      name="description"
+      content="Ứng dụng quản lý đơn hàng dành cho shipper tối ưu thao tác một tay."
+    />
+    <meta property="og:title" content="Tom Shipper — Quản Lý Giao Hàng" />
+    <meta
+      property="og:description"
+      content="Ứng dụng quản lý đơn hàng dành cho shipper tối ưu thao tác một tay."
+    />
+    <meta property="og:type" content="website" />
+    <link rel="stylesheet" href="style.css" />
+    <script defer src="script.js"></script>
+  </head>
+  <body>
+    <!-- LAYER 0: FULL-SCREEN OCEAN BLUE BRAND BACKGROUND -->
+    <div class="brand-background brand-bg-ocean" aria-hidden="true">
+      <div class="brand-tech-grid"></div>
+      <span class="brand-cyan-orb orb-1"></span>
+      <span class="brand-cyan-orb orb-2"></span>
+      <span class="brand-cyan-orb orb-3"></span>
+    </div>
+
+    <!-- LAYER 1: DHN MONOGRAM, DUY HOANG NETWORK & TOM SHIPPER TYPOGRAPHY -->
+    <div id="brand-typography-layer" class="brand-bg-typography" aria-hidden="true">
+      <!-- Flowing Ocean Curves, Concentric Rings, Geometric Vectors & Cyan Particles -->
+      <svg
+        class="brand-curves-svg"
+        viewBox="0 0 1200 1600"
+        preserveAspectRatio="xMidYMid slice"
+        aria-hidden="true"
+      >
+        <defs>
+          <linearGradient id="brand-curve-grad-1" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#43C9ED" stop-opacity="0.28" />
+            <stop offset="50%" stop-color="#A7E9FF" stop-opacity="0.12" />
+            <stop offset="100%" stop-color="#087EC3" stop-opacity="0" />
+          </linearGradient>
+          <linearGradient id="brand-curve-grad-2" x1="100%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.22" />
+            <stop offset="55%" stop-color="#43C9ED" stop-opacity="0.14" />
+            <stop offset="100%" stop-color="#073B70" stop-opacity="0" />
+          </linearGradient>
+          <radialGradient id="cyan-spark" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.95" />
+            <stop offset="40%" stop-color="#43C9ED" stop-opacity="0.6" />
+            <stop offset="100%" stop-color="#43C9ED" stop-opacity="0" />
+          </radialGradient>
+        </defs>
+
+        <!-- Concentric geometric ripples -->
+        <g class="brand-concentric-group" fill="none" stroke="#A7E9FF">
+          <circle cx="980" cy="240" r="180" stroke-width="1.2" stroke-opacity="0.22" />
+          <circle cx="980" cy="240" r="260" stroke-width="1" stroke-opacity="0.14" stroke-dasharray="10 14" />
+          <circle cx="980" cy="240" r="340" stroke-width="0.9" stroke-opacity="0.1" />
+          <circle cx="190" cy="1280" r="210" stroke-width="1.2" stroke-opacity="0.2" />
+          <circle cx="190" cy="1280" r="300" stroke-width="1" stroke-opacity="0.12" stroke-dasharray="8 12" />
+        </g>
+
+        <!-- Flowing water curves -->
+        <g class="brand-water-waves">
+          <path
+            d="M-120,310 C220,170 520,440 880,260 C1060,170 1200,220 1340,180 L1340,260 C1160,310 1020,270 860,350 C500,530 200,270 -120,400 Z"
+            fill="url(#brand-curve-grad-1)"
+          />
+          <path
+            d="M-100,980 C260,820 580,1110 960,920 C1120,840 1240,870 1340,830"
+            fill="none"
+            stroke="url(#brand-curve-grad-2)"
+            stroke-width="2.2"
+          />
+          <path
+            d="M-100,1040 C260,880 580,1170 960,980 C1120,900 1240,930 1340,890"
+            fill="none"
+            stroke="#43C9ED"
+            stroke-opacity="0.18"
+            stroke-width="1.2"
+          />
+          <path
+            d="M-120,1360 C240,1220 560,1490 980,1320 C1140,1255 1250,1290 1340,1250 L1340,1340 C1220,1380 1120,1350 960,1415 C540,1580 220,1320 -120,1450 Z"
+            fill="url(#brand-curve-grad-1)"
+          />
+        </g>
+
+        <!-- Geometric tech guide lines -->
+        <g stroke="#43C9ED" stroke-opacity="0.18" stroke-width="1">
+          <line x1="0" y1="540" x2="1200" y2="390" stroke-dasharray="6 14" />
+          <line x1="0" y1="1180" x2="1200" y2="1030" stroke-dasharray="4 10" />
+          <line x1="220" y1="0" x2="220" y2="1600" stroke-opacity="0.08" />
+          <line x1="980" y1="0" x2="980" y2="1600" stroke-opacity="0.08" />
+        </g>
+
+        <!-- Cyan Luminous Particles -->
+        <circle cx="160" cy="210" r="14" fill="url(#cyan-spark)" />
+        <circle cx="880" cy="390" r="18" fill="url(#cyan-spark)" />
+        <circle cx="310" cy="740" r="12" fill="url(#cyan-spark)" />
+        <circle cx="1010" cy="860" r="16" fill="url(#cyan-spark)" />
+        <circle cx="240" cy="1160" r="15" fill="url(#cyan-spark)" />
+        <circle cx="840" cy="1380" r="20" fill="url(#cyan-spark)" />
+      </svg>
+
+      <!-- Main Brand Wordmark: DUY HOANG NETWORK (Upper & Sweeping) -->
+      <div class="brand-wordmark-top">
+        <span class="brand-wordmark-outline" data-text="DUY HOANG NETWORK">DUY HOANG NETWORK</span>
+        <span class="brand-wordmark-fill" data-text="DUY HOANG NETWORK">DUY HOANG NETWORK</span>
+        <span class="brand-wordmark-sub">DIGITAL ECOSYSTEM // NETWORK ARCHITECTURE</span>
+      </div>
+
+      <!-- Official DUY HOANG NETWORK Logo Emblem (Slow Floating Drift) -->
+      <div class="brand-monogram-center">
+        <img
+          id="dhn-bg-logo"
+          class="dhn-logo-img"
+          src="/assets/aistudio/dhn-logo-cutout.png"
+          alt=""
+          aria-hidden="true"
+        />
+        <svg
+          id="dhn-bg-fallback"
+          class="dhn-monogram-svg"
+          viewBox="0 0 520 520"
+          fill="none"
+          aria-hidden="true"
+          hidden
+        >
+          <defs>
+            <linearGradient id="dhn-metal-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.34" />
+              <stop offset="45%" stop-color="#43C9ED" stop-opacity="0.26" />
+              <stop offset="100%" stop-color="#A7E9FF" stop-opacity="0.08" />
+            </linearGradient>
+            <linearGradient id="dhn-stroke-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.48" />
+              <stop offset="50%" stop-color="#43C9ED" stop-opacity="0.52" />
+              <stop offset="100%" stop-color="#A7E9FF" stop-opacity="0.18" />
+            </linearGradient>
+          </defs>
+
+          <!-- Hexagonal Circuit Frame -->
+          <polygon
+            points="260,34 452,145 452,375 260,486 68,375 68,145"
+            stroke="url(#dhn-stroke-grad)"
+            stroke-width="2.5"
+            fill="none"
+          />
+          <polygon
+            points="260,60 430,158 430,362 260,460 90,362 90,158"
+            stroke="#43C9ED"
+            stroke-opacity="0.28"
+            stroke-width="1.5"
+            stroke-dasharray="42 14"
+            fill="none"
+          />
+          <!-- Wi-Fi Signal Arcs (Top Right) -->
+          <path d="M352 72 A90 90 0 0 1 428 148" stroke="#43C9ED" stroke-opacity="0.45" stroke-width="6" stroke-linecap="round" />
+          <path d="M348 94 A66 66 0 0 1 404 150" stroke="#43C9ED" stroke-opacity="0.4" stroke-width="5" stroke-linecap="round" />
+          <path d="M344 116 A42 42 0 0 1 380 152" stroke="#A7E9FF" stroke-opacity="0.4" stroke-width="4" stroke-linecap="round" />
+
+          <!-- Interlocking D & H -->
+          <path
+            d="M126 162 H208 L254 208 V312 L208 358 H126 Z M162 198 V322 H198 L220 300 V220 L198 198 Z"
+            fill="url(#dhn-metal-grad)"
+            stroke="url(#dhn-stroke-grad)"
+            stroke-width="2.2"
+            fill-rule="evenodd"
+          />
+          <path
+            d="M238 162 H274 V242 H334 V162 H370 V358 H334 V278 H274 V358 H238 Z"
+            fill="url(#dhn-metal-grad)"
+            stroke="url(#dhn-stroke-grad)"
+            stroke-width="2.2"
+          />
+          <!-- Orbital Ring & Sphere -->
+          <ellipse
+            cx="260"
+            cy="272"
+            rx="212"
+            ry="66"
+            transform="rotate(-14 260 272)"
+            stroke="url(#dhn-stroke-grad)"
+            stroke-width="3"
+            fill="none"
+          />
+          <circle cx="424" cy="264" r="9" fill="#43C9ED" fill-opacity="0.72" />
+        </svg>
+      </div>
+
+      <!-- Product Brand Typography: TOM SHIPPER -->
+      <div class="brand-product-band">
+        <span class="brand-product-kicker">ECOSYSTEM BY DUY HOANG NETWORK</span>
+        <div class="brand-product-stack">
+          <span class="brand-product-echo" aria-hidden="true">TOM SHIPPER</span>
+          <span class="brand-product-main">TOM SHIPPER</span>
+        </div>
+      </div>
+
+      <!-- Lower Repeating Brand Architecture -->
+      <div class="brand-wordmark-bottom">
+        <span class="brand-bottom-line">DUY HOANG NETWORK × TOM SHIPPER</span>
+        <span class="brand-bottom-ghost">DHN // SMART DELIVERY SYSTEM</span>
+      </div>
+    </div>
+
+    <!-- LAYER 2: SUBTLE OCEAN LIGHT CAUSTICS (Z-INDEX 2, ZERO BUBBLES) -->
+    <div class="brand-bg-caustics" aria-hidden="true">
+      <svg
+        class="ocean-caustics-svg"
+        viewBox="0 0 800 800"
+        preserveAspectRatio="none"
+        aria-hidden="true"
+      >
+        <defs>
+          <linearGradient id="caustic-ribbon-1" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#9debff" stop-opacity="0.22" />
+            <stop offset="50%" stop-color="#ffffff" stop-opacity="0.08" />
+            <stop offset="100%" stop-color="#53c9ed" stop-opacity="0" />
+          </linearGradient>
+          <linearGradient id="caustic-ribbon-2" x1="100%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="#ffffff" stop-opacity="0.16" />
+            <stop offset="55%" stop-color="#5fdeff" stop-opacity="0.07" />
+            <stop offset="100%" stop-color="#087ec3" stop-opacity="0" />
+          </linearGradient>
+        </defs>
+        <path
+          d="M-60,160 C180,60 420,270 860,110 L860,220 C440,370 200,160 -60,260 Z"
+          fill="url(#caustic-ribbon-1)"
+        />
+        <path
+          d="M-40,560 C240,440 520,660 860,480 L860,590 C510,750 230,540 -40,650 Z"
+          fill="url(#caustic-ribbon-2)"
+        />
+      </svg>
+    </div>
+
+    <div id="app-shell" class="app-shell">
+      <header class="app-header">
+        <div class="header-inner">
+          <div class="brand-group">
+            <span class="brand-mark" aria-hidden="true">
+              <svg
+                viewBox="0 0 24 24"
+                width="24"
+                height="24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <rect x="1" y="3" width="15" height="13" rx="2"></rect>
+                <polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon>
+                <circle cx="5.5" cy="18.5" r="2.5"></circle>
+                <circle cx="18.5" cy="18.5" r="2.5"></circle>
+              </svg>
+            </span>
+            <h1 class="brand-title glass-text">Tom Shipper</h1>
+          </div>
+          <p id="header-context" class="header-context"></p>
+        </div>
+      </header>
+
+      <main class="app-main">
+        <!-- TRANG CHỦ -->
+        <section
+          id="page-home"
+          class="page active"
+          aria-labelledby="nav-home"
+        >
+          <div class="section-header-row home-header-row">
+            <h2 class="section-title glass-text">Trang chủ</h2>
+          </div>
+          <div class="toolbar">
+            <div class="search-box">
+              <span class="search-icon" aria-hidden="true">
+                <svg
+                  viewBox="0 0 24 24"
+                  width="20"
+                  height="20"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <circle cx="11" cy="11" r="8"></circle>
+                  <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+              </span>
+              <input
+                id="home-search-input"
+                type="search"
+                class="search-input"
+                placeholder="Tìm tên khách hàng (có dấu hoặc không dấu)..."
+                autocomplete="off"
+                aria-label="Tìm kiếm đơn chờ giao theo tên khách hàng"
+              />
+              <button
+                id="home-search-clear"
+                type="button"
+                class="btn-clear"
+                aria-label="Xóa từ khóa tìm kiếm"
+                hidden
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  width="18"
+                  height="18"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.4"
+                  stroke-linecap="round"
+                >
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </button>
+            </div>
+            <div id="home-summary-bar" class="summary-strip"></div>
+          </div>
+
+          <div id="orders-list" class="cards-grid" aria-live="polite"></div>
+
+          <div id="home-empty" class="empty-state" hidden>
+            <div class="empty-icon" aria-hidden="true">
+              <svg
+                viewBox="0 0 24 24"
+                width="44"
+                height="44"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path
+                  d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"
+                ></path>
+                <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+                <line x1="12" y1="22.08" x2="12" y2="12"></line>
+              </svg>
+            </div>
+            <h2 id="home-empty-title" class="empty-title">Chưa có đơn hàng chờ giao</h2>
+            <p id="home-empty-desc" class="empty-desc">
+              Nhấn nút dấu cộng (+) ở góc dưới bên phải để thêm nhiều đơn hàng cùng lúc.
+            </p>
+          </div>
+        </section>
+
+        <!-- THỐNG KÊ -->
+        <section
+          id="page-stats"
+          class="page"
+          aria-labelledby="nav-stats"
+          hidden
+        >
+          <div class="section-header-row">
+            <h2 class="section-title glass-text">Thống kê giao hàng</h2>
+            <div class="segmented-control" role="tablist" aria-label="Chế độ thống kê">
+              <button
+                type="button"
+                id="stats-mode-day"
+                class="seg-btn active"
+                data-stats-mode="day"
+                role="tab"
+                aria-selected="true"
+              >
+                Theo ngày
+              </button>
+              <button
+                type="button"
+                id="stats-mode-week"
+                class="seg-btn"
+                data-stats-mode="week"
+                role="tab"
+                aria-selected="false"
+              >
+                Theo tuần
+              </button>
+            </div>
+          </div>
+
+          <div id="stats-day-controls" class="filter-bar">
+            <label for="stats-date-input" class="filter-label">Chọn ngày:</label>
+            <input id="stats-date-input" type="date" class="date-input" />
+            <button id="stats-today-btn" type="button" class="btn-outline-sm">
+              Hôm nay
+            </button>
+          </div>
+
+          <div id="stats-week-controls" class="filter-bar" hidden>
+            <div class="week-submode-row">
+              <button
+                type="button"
+                id="week-type-calendar"
+                class="chip-btn active"
+                data-week-type="calendar"
+              >
+                Tuần (Thứ 2 – Chủ nhật)
+              </button>
+              <button
+                type="button"
+                id="week-type-last7"
+                class="chip-btn"
+                data-week-type="last7"
+              >
+                7 ngày gần nhất
+              </button>
+            </div>
+            <div id="stats-week-picker-wrap" class="week-picker-row">
+              <label for="stats-week-date" class="filter-label">Ngày trong tuần:</label>
+              <input id="stats-week-date" type="date" class="date-input" />
+            </div>
+            <p id="stats-week-range-label" class="week-range-label"></p>
+          </div>
+
+          <div id="stats-kpi-grid" class="kpi-grid"></div>
+
+          <div id="stats-chart-panel" class="panel-card" hidden>
+            <h3 class="panel-title">Số đơn hoàn thành từng ngày</h3>
+            <div id="stats-bar-chart" class="bar-chart" aria-label="Biểu đồ đơn hoàn thành theo ngày"></div>
+          </div>
+        </section>
+
+        <!-- LỊCH SỬ -->
+        <section
+          id="page-history"
+          class="page"
+          aria-labelledby="nav-history"
+          hidden
+        >
+          <div class="section-header-row">
+            <h2 class="section-title glass-text">Lịch sử giao thành công</h2>
+          </div>
+
+          <div class="toolbar">
+            <div class="search-box">
+              <span class="search-icon" aria-hidden="true">
+                <svg
+                  viewBox="0 0 24 24"
+                  width="20"
+                  height="20"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <circle cx="11" cy="11" r="8"></circle>
+                  <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+              </span>
+              <input
+                id="history-search-input"
+                type="search"
+                class="search-input"
+                placeholder="Tìm khách hàng trong lịch sử..."
+                autocomplete="off"
+                aria-label="Tìm kiếm lịch sử theo tên khách hàng"
+              />
+              <button
+                id="history-search-clear"
+                type="button"
+                class="btn-clear"
+                aria-label="Xóa tìm kiếm lịch sử"
+                hidden
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  width="18"
+                  height="18"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.4"
+                  stroke-linecap="round"
+                >
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </button>
+            </div>
+
+            <div class="filter-bar history-filter-bar">
+              <div class="date-filter-group">
+                <label for="history-date-input" class="filter-label">Ngày giao:</label>
+                <input id="history-date-input" type="date" class="date-input" />
+              </div>
+              <button
+                id="history-all-dates-btn"
+                type="button"
+                class="chip-btn"
+                aria-pressed="false"
+              >
+                Tất cả ngày
+              </button>
+            </div>
+
+            <div class="export-panel">
+              <div class="export-scope">
+                <span class="export-label">Xuất lịch sử:</span>
+                <div class="segmented-control compact" role="group" aria-label="Phạm vi xuất lịch sử">
+                  <button
+                    type="button"
+                    id="export-scope-day"
+                    class="seg-btn active"
+                    data-export-scope="day"
+                  >
+                    Theo ngày
+                  </button>
+                  <button
+                    type="button"
+                    id="export-scope-week"
+                    class="seg-btn"
+                    data-export-scope="week"
+                  >
+                    Theo tuần
+                  </button>
+                </div>
+              </div>
+              <div class="export-actions">
+                <button id="btn-export-txt" type="button" class="btn-export btn-export-txt">
+                  Xuất TXT
+                </button>
+                <button id="btn-export-pdf" type="button" class="btn-export btn-export-pdf">
+                  Xuất PDF
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div id="history-summary-bar" class="summary-strip"></div>
+          <div id="history-list" class="cards-grid" aria-live="polite"></div>
+
+          <div id="history-empty" class="empty-state" hidden>
+            <div class="empty-icon" aria-hidden="true">
+              <svg
+                viewBox="0 0 24 24"
+                width="44"
+                height="44"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12 16 14"></polyline>
+              </svg>
+            </div>
+            <h2 id="history-empty-title" class="empty-title">Chưa có đơn hoàn thành</h2>
+            <p id="history-empty-desc" class="empty-desc">
+              Các đơn hàng sau khi xác nhận hoàn thành sẽ được lưu tại đây theo ngày giao thực tế.
+            </p>
+          </div>
+        </section>
+      </main>
+
+      <footer class="app-footer">
+        <div class="footer-brand-row">
+          <img
+            id="footer-dhn-logo"
+            class="footer-dhn-logo"
+            src="/assets/aistudio/dhn-logo-cutout.png"
+            alt="Logo Duy Hoang Network"
+          />
+          <p>Tom Shipper by Duy Hoang Network</p>
+        </div>
+      </footer>
+    </div>
+
+    <!-- FAB THÊM ĐƠN (CHỈ HIỆN Ở TRANG CHỦ) -->
+    <button
+      id="fab-add"
+      type="button"
+      class="fab"
+      aria-label="Thêm đơn hàng mới"
+      title="Thêm đơn hàng"
+    >
+      <svg
+        viewBox="0 0 24 24"
+        width="28"
+        height="28"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2.6"
+        stroke-linecap="round"
+      >
+        <line x1="12" y1="5" x2="12" y2="19"></line>
+        <line x1="5" y1="12" x2="19" y2="12"></line>
+      </svg>
+    </button>
+
+    <!-- BOTTOM NAVIGATION (TRANG CHỦ Ở CHÍNH GIỮA) -->
+    <nav class="bottom-nav" aria-label="Điều hướng chính">
+      <div class="bottom-nav-inner">
+        <button
+          id="nav-stats"
+          type="button"
+          class="nav-item"
+          data-tab="stats"
+          aria-current="false"
+        >
+          <span class="nav-icon" aria-hidden="true">
+            <svg
+              viewBox="0 0 24 24"
+              width="22"
+              height="22"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.1"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <line x1="18" y1="20" x2="18" y2="10"></line>
+              <line x1="12" y1="20" x2="12" y2="4"></line>
+              <line x1="6" y1="20" x2="6" y2="14"></line>
+            </svg>
+          </span>
+          <span class="nav-label">Thống kê</span>
+        </button>
+
+        <button
+          id="nav-home"
+          type="button"
+          class="nav-item active"
+          data-tab="home"
+          aria-current="page"
+        >
+          <span class="nav-icon" aria-hidden="true">
+            <svg
+              viewBox="0 0 24 24"
+              width="22"
+              height="22"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.1"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M3 9.5L12 3l9 6.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1V9.5z"></path>
+            </svg>
+          </span>
+          <span class="nav-label">Trang chủ</span>
+        </button>
+
+        <button
+          id="nav-history"
+          type="button"
+          class="nav-item"
+          data-tab="history"
+          aria-current="false"
+        >
+          <span class="nav-icon" aria-hidden="true">
+            <svg
+              viewBox="0 0 24 24"
+              width="22"
+              height="22"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.1"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <circle cx="12" cy="12" r="9"></circle>
+              <polyline points="12 7 12 12 15.5 14"></polyline>
+            </svg>
+          </span>
+          <span class="nav-label">Lịch sử</span>
+        </button>
+      </div>
+    </nav>
+
+    <!-- MODAL THÊM ĐƠN (CHỈ NHẬP NHIỀU ĐƠN) -->
+    <div
+      id="modal-add"
+      class="modal-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="modal-add-title"
+      hidden
+    >
+      <div class="modal-sheet">
+        <div class="sheet-drag-handle" aria-hidden="true"><span></span></div>
+        <div class="modal-header">
+          <h2 id="modal-add-title" class="modal-title">Thêm đơn hàng</h2>
+          <button
+            type="button"
+            class="modal-close"
+            data-close-modal="modal-add"
+            aria-label="Đóng hộp thoại thêm đơn"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              width="22"
+              height="22"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.4"
+              stroke-linecap="round"
+            >
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+        <form id="form-add-orders" class="modal-body-form" novalidate>
+          <div class="modal-scroll-content">
+            <div class="format-guide">
+              <p class="format-rule">
+                Mỗi dòng một đơn: <strong>Tên khách - Đơn hàng - Địa chỉ - Số điện thoại - Ghi chú</strong>
+              </p>
+              <p class="format-note">
+                Chỉ bắt buộc Tên khách và Đơn hàng. Các phần sau có thể bỏ trống.
+              </p>
+            </div>
+            <label for="bulk-orders-input" class="field-label">Danh sách đơn hàng</label>
+            <textarea
+              id="bulk-orders-input"
+              class="bulk-textarea"
+              rows="8"
+              placeholder="Nguyễn Văn An - 2 ly trà đào - 12 Nguyễn Huệ - 0901234567 - Gọi trước&#10;Vy Cherry - 1 bò, 1 xá xíu - Cổng chính - - Giao gấp&#10;Trần Thị Mai - 1 phần cơm"
+            ></textarea>
+            <p id="add-error-msg" class="form-error" role="alert" hidden></p>
+          </div>
+          <div class="modal-footer">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              data-close-modal="modal-add"
+            >
+              Hủy
+            </button>
+            <button type="submit" class="btn btn-primary">
+              Lưu tất cả đơn
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- MODAL SỬA ĐƠN (FORM NHẬP TỪNG TRƯỜNG RIÊNG BIỆT) -->
+    <div
+      id="modal-edit"
+      class="modal-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="modal-edit-title"
+      hidden
+    >
+      <div class="modal-sheet">
+        <div class="sheet-drag-handle" aria-hidden="true"><span></span></div>
+        <div class="modal-header">
+          <h2 id="modal-edit-title" class="modal-title">Sửa thông tin đơn hàng</h2>
+          <button
+            type="button"
+            class="modal-close"
+            data-close-modal="modal-edit"
+            aria-label="Đóng hộp thoại sửa đơn"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              width="22"
+              height="22"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.4"
+              stroke-linecap="round"
+            >
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+        <form id="form-edit-order" class="modal-body-form" novalidate>
+          <div class="modal-scroll-content">
+            <input type="hidden" id="edit-order-id" />
+
+            <div class="form-group">
+              <label for="edit-name" class="field-label">
+                Tên khách hàng <span class="req-mark">*</span>
+              </label>
+              <input
+                id="edit-name"
+                type="text"
+                class="field-input"
+                required
+                placeholder="Nhập tên khách hàng"
+              />
+            </div>
+
+            <div class="form-group">
+              <label for="edit-phone" class="field-label">Số điện thoại</label>
+              <input
+                id="edit-phone"
+                type="tel"
+                class="field-input"
+                inputmode="tel"
+                placeholder="Ví dụ: 0901234567"
+              />
+            </div>
+
+            <div class="form-group">
+              <label for="edit-order-detail" class="field-label">
+                Chi tiết đơn hàng <span class="req-mark">*</span>
+              </label>
+              <textarea
+                id="edit-order-detail"
+                class="field-input field-textarea-sm"
+                rows="3"
+                required
+                placeholder="Nhập chi tiết món / hàng hóa"
+              ></textarea>
+            </div>
+
+            <div class="form-group">
+              <label for="edit-address" class="field-label">Địa chỉ giao hàng</label>
+              <input
+                id="edit-address"
+                type="text"
+                class="field-input"
+                placeholder="Nhập địa chỉ giao hàng"
+              />
+            </div>
+
+            <div class="form-group">
+              <label for="edit-note" class="field-label">Ghi chú</label>
+              <input
+                id="edit-note"
+                type="text"
+                class="field-input"
+                placeholder="Ghi chú giao hàng (nếu có)"
+              />
+            </div>
+
+            <div class="form-group">
+              <label for="edit-payment" class="field-label">Phương thức thanh toán</label>
+              <select id="edit-payment" class="field-input">
+                <option value="cash">Tiền mặt</option>
+                <option value="transfer">Chuyển khoản</option>
+              </select>
+            </div>
+
+            <p id="edit-error-msg" class="form-error" role="alert" hidden></p>
+          </div>
+
+          <div class="modal-footer">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              data-close-modal="modal-edit"
+            >
+              Hủy
+            </button>
+            <button type="submit" class="btn btn-primary">
+              Lưu thay đổi
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- MODAL XÁC NHẬN -->
+    <div
+      id="modal-confirm"
+      class="modal-overlay modal-overlay-center"
+      role="alertdialog"
+      aria-modal="true"
+      aria-labelledby="confirm-title"
+      aria-describedby="confirm-message"
+      hidden
+    >
+      <div class="confirm-dialog">
+        <h2 id="confirm-title" class="confirm-title">Xác nhận</h2>
+        <p id="confirm-message" class="confirm-message"></p>
+        <div class="confirm-actions">
+          <button
+            id="confirm-cancel-btn"
+            type="button"
+            class="btn btn-secondary"
+          >
+            Hủy
+          </button>
+          <button
+            id="confirm-ok-btn"
+            type="button"
+            class="btn btn-primary"
+          >
+            Xác nhận
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL XEM ẢNH XÁC NHẬN -->
+    <div
+      id="modal-image"
+      class="modal-overlay modal-overlay-center"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="modal-image-title"
+      hidden
+    >
+      <div class="image-dialog">
+        <div class="modal-header">
+          <h2 id="modal-image-title" class="modal-title">Ảnh xác nhận giao hàng</h2>
+          <button
+            type="button"
+            class="modal-close"
+            data-close-modal="modal-image"
+            aria-label="Đóng xem ảnh"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              width="22"
+              height="22"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.4"
+              stroke-linecap="round"
+            >
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+        <div class="image-viewer-body">
+          <img id="modal-image-preview" src="" alt="Ảnh xác nhận giao hàng" />
+          <p id="modal-image-caption" class="image-viewer-caption"></p>
+        </div>
+        <div class="modal-footer">
+          <button
+            type="button"
+            class="btn btn-secondary"
+            data-close-modal="modal-image"
+          >
+            Đóng
+          </button>
+          <button
+            id="modal-image-download-btn"
+            type="button"
+            class="btn btn-primary"
+          >
+            📥 Tải / Lưu ảnh
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- INPUT CAMERA ẨN -->
+    <input
+      id="camera-input"
+      type="file"
+      accept="image/*"
+      capture="environment"
+      hidden
+    />
+
+    <!-- TOAST THÔNG BÁO -->
+    <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+    <!-- KHU VỰC IN / XUẤT PDF -->
+    <div id="print-area" class="print-only" aria-hidden="true"></div>
+  </body>
+</html>
