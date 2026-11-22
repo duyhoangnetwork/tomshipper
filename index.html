@@ -6,8 +6,8 @@
       name="viewport"
       content="width=device-width, initial-scale=1.0, viewport-fit=cover"
     />
-    <meta name="theme-color" content="#087EC3" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="#063B70" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#d7ecff" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)" />
     <title>Tom Shipper — Quản Lý Giao Hàng</title>
     <meta
       name="description"
@@ -23,224 +23,8 @@
     <script defer src="script.js"></script>
   </head>
   <body>
-    <!-- LAYER 0: FULL-SCREEN OCEAN BLUE BRAND BACKGROUND -->
-    <div class="brand-background brand-bg-ocean" aria-hidden="true">
-      <div class="brand-tech-grid"></div>
-      <span class="brand-cyan-orb orb-1"></span>
-      <span class="brand-cyan-orb orb-2"></span>
-      <span class="brand-cyan-orb orb-3"></span>
-    </div>
-
-    <!-- LAYER 1: DHN MONOGRAM, DUY HOANG NETWORK & TOM SHIPPER TYPOGRAPHY -->
-    <div id="brand-typography-layer" class="brand-bg-typography" aria-hidden="true">
-      <!-- Flowing Ocean Curves, Concentric Rings, Geometric Vectors & Cyan Particles -->
-      <svg
-        class="brand-curves-svg"
-        viewBox="0 0 1200 1600"
-        preserveAspectRatio="xMidYMid slice"
-        aria-hidden="true"
-      >
-        <defs>
-          <linearGradient id="brand-curve-grad-1" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stop-color="#43C9ED" stop-opacity="0.28" />
-            <stop offset="50%" stop-color="#A7E9FF" stop-opacity="0.12" />
-            <stop offset="100%" stop-color="#087EC3" stop-opacity="0" />
-          </linearGradient>
-          <linearGradient id="brand-curve-grad-2" x1="100%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.22" />
-            <stop offset="55%" stop-color="#43C9ED" stop-opacity="0.14" />
-            <stop offset="100%" stop-color="#073B70" stop-opacity="0" />
-          </linearGradient>
-          <radialGradient id="cyan-spark" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.95" />
-            <stop offset="40%" stop-color="#43C9ED" stop-opacity="0.6" />
-            <stop offset="100%" stop-color="#43C9ED" stop-opacity="0" />
-          </radialGradient>
-        </defs>
-
-        <!-- Concentric geometric ripples -->
-        <g class="brand-concentric-group" fill="none" stroke="#A7E9FF">
-          <circle cx="980" cy="240" r="180" stroke-width="1.2" stroke-opacity="0.22" />
-          <circle cx="980" cy="240" r="260" stroke-width="1" stroke-opacity="0.14" stroke-dasharray="10 14" />
-          <circle cx="980" cy="240" r="340" stroke-width="0.9" stroke-opacity="0.1" />
-          <circle cx="190" cy="1280" r="210" stroke-width="1.2" stroke-opacity="0.2" />
-          <circle cx="190" cy="1280" r="300" stroke-width="1" stroke-opacity="0.12" stroke-dasharray="8 12" />
-        </g>
-
-        <!-- Flowing water curves -->
-        <g class="brand-water-waves">
-          <path
-            d="M-120,310 C220,170 520,440 880,260 C1060,170 1200,220 1340,180 L1340,260 C1160,310 1020,270 860,350 C500,530 200,270 -120,400 Z"
-            fill="url(#brand-curve-grad-1)"
-          />
-          <path
-            d="M-100,980 C260,820 580,1110 960,920 C1120,840 1240,870 1340,830"
-            fill="none"
-            stroke="url(#brand-curve-grad-2)"
-            stroke-width="2.2"
-          />
-          <path
-            d="M-100,1040 C260,880 580,1170 960,980 C1120,900 1240,930 1340,890"
-            fill="none"
-            stroke="#43C9ED"
-            stroke-opacity="0.18"
-            stroke-width="1.2"
-          />
-          <path
-            d="M-120,1360 C240,1220 560,1490 980,1320 C1140,1255 1250,1290 1340,1250 L1340,1340 C1220,1380 1120,1350 960,1415 C540,1580 220,1320 -120,1450 Z"
-            fill="url(#brand-curve-grad-1)"
-          />
-        </g>
-
-        <!-- Geometric tech guide lines -->
-        <g stroke="#43C9ED" stroke-opacity="0.18" stroke-width="1">
-          <line x1="0" y1="540" x2="1200" y2="390" stroke-dasharray="6 14" />
-          <line x1="0" y1="1180" x2="1200" y2="1030" stroke-dasharray="4 10" />
-          <line x1="220" y1="0" x2="220" y2="1600" stroke-opacity="0.08" />
-          <line x1="980" y1="0" x2="980" y2="1600" stroke-opacity="0.08" />
-        </g>
-
-        <!-- Cyan Luminous Particles -->
-        <circle cx="160" cy="210" r="14" fill="url(#cyan-spark)" />
-        <circle cx="880" cy="390" r="18" fill="url(#cyan-spark)" />
-        <circle cx="310" cy="740" r="12" fill="url(#cyan-spark)" />
-        <circle cx="1010" cy="860" r="16" fill="url(#cyan-spark)" />
-        <circle cx="240" cy="1160" r="15" fill="url(#cyan-spark)" />
-        <circle cx="840" cy="1380" r="20" fill="url(#cyan-spark)" />
-      </svg>
-
-      <!-- Main Brand Wordmark: DUY HOANG NETWORK (Upper & Sweeping) -->
-      <div class="brand-wordmark-top">
-        <span class="brand-wordmark-outline" data-text="DUY HOANG NETWORK">DUY HOANG NETWORK</span>
-        <span class="brand-wordmark-fill" data-text="DUY HOANG NETWORK">DUY HOANG NETWORK</span>
-        <span class="brand-wordmark-sub">DIGITAL ECOSYSTEM // NETWORK ARCHITECTURE</span>
-      </div>
-
-      <!-- Official DUY HOANG NETWORK Logo Emblem (Slow Floating Drift) -->
-      <div class="brand-monogram-center">
-        <img
-          id="dhn-bg-logo"
-          class="dhn-logo-img"
-          src="/assets/aistudio/dhn-logo-cutout.png"
-          alt=""
-          aria-hidden="true"
-        />
-        <svg
-          id="dhn-bg-fallback"
-          class="dhn-monogram-svg"
-          viewBox="0 0 520 520"
-          fill="none"
-          aria-hidden="true"
-          hidden
-        >
-          <defs>
-            <linearGradient id="dhn-metal-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.34" />
-              <stop offset="45%" stop-color="#43C9ED" stop-opacity="0.26" />
-              <stop offset="100%" stop-color="#A7E9FF" stop-opacity="0.08" />
-            </linearGradient>
-            <linearGradient id="dhn-stroke-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.48" />
-              <stop offset="50%" stop-color="#43C9ED" stop-opacity="0.52" />
-              <stop offset="100%" stop-color="#A7E9FF" stop-opacity="0.18" />
-            </linearGradient>
-          </defs>
-
-          <!-- Hexagonal Circuit Frame -->
-          <polygon
-            points="260,34 452,145 452,375 260,486 68,375 68,145"
-            stroke="url(#dhn-stroke-grad)"
-            stroke-width="2.5"
-            fill="none"
-          />
-          <polygon
-            points="260,60 430,158 430,362 260,460 90,362 90,158"
-            stroke="#43C9ED"
-            stroke-opacity="0.28"
-            stroke-width="1.5"
-            stroke-dasharray="42 14"
-            fill="none"
-          />
-          <!-- Wi-Fi Signal Arcs (Top Right) -->
-          <path d="M352 72 A90 90 0 0 1 428 148" stroke="#43C9ED" stroke-opacity="0.45" stroke-width="6" stroke-linecap="round" />
-          <path d="M348 94 A66 66 0 0 1 404 150" stroke="#43C9ED" stroke-opacity="0.4" stroke-width="5" stroke-linecap="round" />
-          <path d="M344 116 A42 42 0 0 1 380 152" stroke="#A7E9FF" stroke-opacity="0.4" stroke-width="4" stroke-linecap="round" />
-
-          <!-- Interlocking D & H -->
-          <path
-            d="M126 162 H208 L254 208 V312 L208 358 H126 Z M162 198 V322 H198 L220 300 V220 L198 198 Z"
-            fill="url(#dhn-metal-grad)"
-            stroke="url(#dhn-stroke-grad)"
-            stroke-width="2.2"
-            fill-rule="evenodd"
-          />
-          <path
-            d="M238 162 H274 V242 H334 V162 H370 V358 H334 V278 H274 V358 H238 Z"
-            fill="url(#dhn-metal-grad)"
-            stroke="url(#dhn-stroke-grad)"
-            stroke-width="2.2"
-          />
-          <!-- Orbital Ring & Sphere -->
-          <ellipse
-            cx="260"
-            cy="272"
-            rx="212"
-            ry="66"
-            transform="rotate(-14 260 272)"
-            stroke="url(#dhn-stroke-grad)"
-            stroke-width="3"
-            fill="none"
-          />
-          <circle cx="424" cy="264" r="9" fill="#43C9ED" fill-opacity="0.72" />
-        </svg>
-      </div>
-
-      <!-- Product Brand Typography: TOM SHIPPER -->
-      <div class="brand-product-band">
-        <span class="brand-product-kicker">ECOSYSTEM BY DUY HOANG NETWORK</span>
-        <div class="brand-product-stack">
-          <span class="brand-product-echo" aria-hidden="true">TOM SHIPPER</span>
-          <span class="brand-product-main">TOM SHIPPER</span>
-        </div>
-      </div>
-
-      <!-- Lower Repeating Brand Architecture -->
-      <div class="brand-wordmark-bottom">
-        <span class="brand-bottom-line">DUY HOANG NETWORK × TOM SHIPPER</span>
-        <span class="brand-bottom-ghost">DHN // SMART DELIVERY SYSTEM</span>
-      </div>
-    </div>
-
-    <!-- LAYER 2: SUBTLE OCEAN LIGHT CAUSTICS (Z-INDEX 2, ZERO BUBBLES) -->
-    <div class="brand-bg-caustics" aria-hidden="true">
-      <svg
-        class="ocean-caustics-svg"
-        viewBox="0 0 800 800"
-        preserveAspectRatio="none"
-        aria-hidden="true"
-      >
-        <defs>
-          <linearGradient id="caustic-ribbon-1" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stop-color="#9debff" stop-opacity="0.22" />
-            <stop offset="50%" stop-color="#ffffff" stop-opacity="0.08" />
-            <stop offset="100%" stop-color="#53c9ed" stop-opacity="0" />
-          </linearGradient>
-          <linearGradient id="caustic-ribbon-2" x1="100%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stop-color="#ffffff" stop-opacity="0.16" />
-            <stop offset="55%" stop-color="#5fdeff" stop-opacity="0.07" />
-            <stop offset="100%" stop-color="#087ec3" stop-opacity="0" />
-          </linearGradient>
-        </defs>
-        <path
-          d="M-60,160 C180,60 420,270 860,110 L860,220 C440,370 200,160 -60,260 Z"
-          fill="url(#caustic-ribbon-1)"
-        />
-        <path
-          d="M-40,560 C240,440 520,660 860,480 L860,590 C510,750 230,540 -40,650 Z"
-          fill="url(#caustic-ribbon-2)"
-        />
-      </svg>
-    </div>
+    <!-- NỀN ỨNG DỤNG SẠCH, BÌNH THƯỜNG (KHÔNG CHỮ NỀN) -->
+    <div class="brand-background brand-bg-ocean" aria-hidden="true"></div>
 
     <div id="app-shell" class="app-shell">
       <header class="app-header">
@@ -562,6 +346,596 @@
             </p>
           </div>
         </section>
+
+        <!-- CÀI ĐẶT -->
+        <section
+          id="page-settings"
+          class="page"
+          aria-labelledby="nav-settings"
+          hidden
+        >
+          <div class="section-header-row">
+            <h2 class="section-title glass-text">Cài đặt</h2>
+          </div>
+
+          <div class="settings-stack">
+            <!-- 1. Cài đặt giao diện -->
+            <div class="panel-card settings-group">
+              <h3 class="settings-group-title">Giao diện &amp; Hiển thị</h3>
+
+              <div class="setting-row-block">
+                <div class="setting-info">
+                  <span class="setting-label">Chế độ màu giao diện</span>
+                  <span class="setting-desc">Chọn nền sáng (chữ đen), nền đen khi tối hoặc tự động theo thiết bị</span>
+                </div>
+                <div
+                  id="setting-theme-group"
+                  class="segmented-control settings-segmented"
+                  role="radiogroup"
+                  aria-label="Chế độ màu giao diện"
+                >
+                  <button type="button" class="seg-btn active" data-theme-choice="auto" role="radio" aria-checked="true">
+                    Tự động
+                  </button>
+                  <button type="button" class="seg-btn" data-theme-choice="light" role="radio" aria-checked="false">
+                    Sáng
+                  </button>
+                  <button type="button" class="seg-btn" data-theme-choice="dark" role="radio" aria-checked="false">
+                    Tối
+                  </button>
+                </div>
+              </div>
+
+              <div class="setting-row-block">
+                <div class="setting-info">
+                  <span class="setting-label">Màu ứng dụng</span>
+                  <span class="setting-desc">Chọn màu nhấn Xanh, Cam, Xanh lá, Đen hoặc Trắng</span>
+                </div>
+                <div
+                  id="setting-accent-group"
+                  class="segmented-control settings-segmented settings-color-grid"
+                  role="radiogroup"
+                  aria-label="Màu ứng dụng"
+                >
+                  <button type="button" class="seg-btn color-choice-btn active" data-accent-choice="blue" role="radio" aria-checked="true">
+                    <span class="color-dot dot-blue" aria-hidden="true"></span>Xanh
+                  </button>
+                  <button type="button" class="seg-btn color-choice-btn" data-accent-choice="orange" role="radio" aria-checked="false">
+                    <span class="color-dot dot-orange" aria-hidden="true"></span>Cam
+                  </button>
+                  <button type="button" class="seg-btn color-choice-btn" data-accent-choice="green" role="radio" aria-checked="false">
+                    <span class="color-dot dot-green" aria-hidden="true"></span>Xanh lá
+                  </button>
+                  <button type="button" class="seg-btn color-choice-btn" data-accent-choice="black" role="radio" aria-checked="false">
+                    <span class="color-dot dot-black" aria-hidden="true"></span>Đen
+                  </button>
+                  <button type="button" class="seg-btn color-choice-btn" data-accent-choice="white" role="radio" aria-checked="false">
+                    <span class="color-dot dot-white" aria-hidden="true"></span>Trắng
+                  </button>
+                </div>
+              </div>
+
+              <div class="setting-row-block">
+                <div class="setting-info">
+                  <span class="setting-label">Tông nền ứng dụng</span>
+                  <span class="setting-desc">Tùy chỉnh sắc độ nền nhẹ nhàng dễ nhìn ngoài trời</span>
+                </div>
+                <div
+                  id="setting-bg-group"
+                  class="segmented-control settings-segmented"
+                  role="radiogroup"
+                  aria-label="Tông nền ứng dụng"
+                >
+                  <button type="button" class="seg-btn active" data-bg-choice="ocean" role="radio" aria-checked="true">
+                    Xanh biển
+                  </button>
+                  <button type="button" class="seg-btn" data-bg-choice="neutral" role="radio" aria-checked="false">
+                    Trung tính
+                  </button>
+                  <button type="button" class="seg-btn" data-bg-choice="midnight" role="radio" aria-checked="false">
+                    Đêm sâu
+                  </button>
+                </div>
+              </div>
+
+              <div class="setting-row-block">
+                <div class="setting-info">
+                  <span class="setting-label">Bo góc thẻ &amp; nút bấm</span>
+                  <span class="setting-desc">Điều chỉnh độ bo tròn của thẻ đơn hàng và bảng điều khiển</span>
+                </div>
+                <div
+                  id="setting-radius-group"
+                  class="segmented-control settings-segmented"
+                  role="radiogroup"
+                  aria-label="Bo góc thẻ và nút bấm"
+                >
+                  <button type="button" class="seg-btn active" data-radius-choice="soft" role="radio" aria-checked="true">
+                    Mềm mại
+                  </button>
+                  <button type="button" class="seg-btn" data-radius-choice="rounded" role="radio" aria-checked="false">
+                    Vừa phải
+                  </button>
+                  <button type="button" class="seg-btn" data-radius-choice="sharp" role="radio" aria-checked="false">
+                    Vuông gọn
+                  </button>
+                </div>
+              </div>
+
+              <div class="setting-row-block">
+                <div class="setting-info">
+                  <span class="setting-label">Trang mở đầu khi vào app</span>
+                  <span class="setting-desc">Chọn màn hình hiển thị ngay khi mở Tom Shipper</span>
+                </div>
+                <div
+                  id="setting-start-tab-group"
+                  class="segmented-control settings-segmented"
+                  role="radiogroup"
+                  aria-label="Trang mở đầu"
+                >
+                  <button type="button" class="seg-btn active" data-start-tab-choice="home" role="radio" aria-checked="true">
+                    Trang chủ
+                  </button>
+                  <button type="button" class="seg-btn" data-start-tab-choice="stats" role="radio" aria-checked="false">
+                    Thống kê
+                  </button>
+                  <button type="button" class="seg-btn" data-start-tab-choice="history" role="radio" aria-checked="false">
+                    Lịch sử
+                  </button>
+                  <button type="button" class="seg-btn" data-start-tab-choice="profile" role="radio" aria-checked="false">
+                    Hồ sơ
+                  </button>
+                </div>
+              </div>
+
+              <div class="setting-row">
+                <div class="setting-info">
+                  <label for="toggle-large-text" class="setting-label">Chữ lớn dễ đọc ngoài trời</label>
+                  <span class="setting-desc">Tăng cỡ chữ tên khách hàng và địa chỉ</span>
+                </div>
+                <button
+                  id="toggle-large-text"
+                  type="button"
+                  class="switch-btn"
+                  role="switch"
+                  aria-checked="false"
+                  data-setting-toggle="largeText"
+                >
+                  <span class="switch-track"><span class="switch-thumb"></span></span>
+                </button>
+              </div>
+
+              <div class="setting-row">
+                <div class="setting-info">
+                  <label for="toggle-compact-cards" class="setting-label">Thẻ đơn hàng gọn nhẹ</label>
+                  <span class="setting-desc">Giảm khoảng trống thẻ để hiển thị nhiều đơn cùng lúc</span>
+                </div>
+                <button
+                  id="toggle-compact-cards"
+                  type="button"
+                  class="switch-btn"
+                  role="switch"
+                  aria-checked="false"
+                  data-setting-toggle="compactCards"
+                >
+                  <span class="switch-track"><span class="switch-thumb"></span></span>
+                </button>
+              </div>
+            </div>
+
+            <!-- 2. Hiệu ứng Liquid Glass -->
+            <div class="panel-card settings-group">
+              <h3 class="settings-group-title">Hiệu ứng Liquid Glass</h3>
+
+              <div class="setting-row">
+                <div class="setting-info">
+                  <label for="toggle-liquid-glass" class="setting-label">Hiệu ứng kính mờ Liquid Glass</label>
+                  <span class="setting-desc">Bật/tắt nền kính trong suốt nhìn xuyên ra phía sau và viền phản chiếu</span>
+                </div>
+                <button
+                  id="toggle-liquid-glass"
+                  type="button"
+                  class="switch-btn is-on"
+                  role="switch"
+                  aria-checked="true"
+                  data-setting-toggle="liquidGlass"
+                >
+                  <span class="switch-track"><span class="switch-thumb"></span></span>
+                </button>
+              </div>
+
+              <div class="setting-row">
+                <div class="setting-info">
+                  <label for="toggle-touch-ripple" class="setting-label">Gợn sóng &amp; ánh sáng khi chạm</label>
+                  <span class="setting-desc">Hiệu ứng lan tỏa ánh sáng theo vị trí ngón tay</span>
+                </div>
+                <button
+                  id="toggle-touch-ripple"
+                  type="button"
+                  class="switch-btn is-on"
+                  role="switch"
+                  aria-checked="true"
+                  data-setting-toggle="touchRipple"
+                >
+                  <span class="switch-track"><span class="switch-thumb"></span></span>
+                </button>
+              </div>
+
+              <div class="setting-row-block">
+                <div class="setting-info">
+                  <span class="setting-label">Mức độ làm mờ kính (Blur)</span>
+                  <span class="setting-desc">Điều chỉnh độ sâu khúc xạ nền khi bật Liquid Glass</span>
+                </div>
+                <div
+                  id="setting-blur-group"
+                  class="segmented-control settings-segmented"
+                  role="radiogroup"
+                  aria-label="Mức độ làm mờ kính"
+                >
+                  <button type="button" class="seg-btn" data-blur-choice="light" role="radio" aria-checked="false">
+                    Nhẹ
+                  </button>
+                  <button type="button" class="seg-btn active" data-blur-choice="medium" role="radio" aria-checked="true">
+                    Tiêu chuẩn
+                  </button>
+                  <button type="button" class="seg-btn" data-blur-choice="strong" role="radio" aria-checked="false">
+                    Sâu
+                  </button>
+                </div>
+              </div>
+
+              <div class="setting-row">
+                <div class="setting-info">
+                  <label for="toggle-card-motion" class="setting-label">Chuyển động trượt thẻ mượt</label>
+                  <span class="setting-desc">Animation trượt lỏng khi tải thẻ đơn hàng và chuyển tab</span>
+                </div>
+                <button
+                  id="toggle-card-motion"
+                  type="button"
+                  class="switch-btn is-on"
+                  role="switch"
+                  aria-checked="true"
+                  data-setting-toggle="cardMotion"
+                >
+                  <span class="switch-track"><span class="switch-thumb"></span></span>
+                </button>
+              </div>
+            </div>
+
+            <!-- 3. Cài đặt giao hàng & thao tác -->
+            <div class="panel-card settings-group">
+              <h3 class="settings-group-title">Thao tác &amp; Giao hàng</h3>
+
+              <div class="setting-row-block">
+                <div class="setting-info">
+                  <span class="setting-label">Sắp xếp đơn chờ giao</span>
+                  <span class="setting-desc">Thứ tự hiển thị danh sách đơn hàng tại Trang chủ</span>
+                </div>
+                <div
+                  id="setting-sort-group"
+                  class="segmented-control settings-segmented"
+                  role="radiogroup"
+                  aria-label="Sắp xếp đơn chờ giao"
+                >
+                  <button type="button" class="seg-btn active" data-sort-choice="newest" role="radio" aria-checked="true">
+                    Mới nhất
+                  </button>
+                  <button type="button" class="seg-btn" data-sort-choice="oldest" role="radio" aria-checked="false">
+                    Cũ nhất
+                  </button>
+                  <button type="button" class="seg-btn" data-sort-choice="carryover" role="radio" aria-checked="false">
+                    Đơn tồn trước
+                  </button>
+                </div>
+              </div>
+
+              <div class="setting-row">
+                <div class="setting-info">
+                  <label for="toggle-single-expand" class="setting-label">Chỉ mở 1 thẻ đơn cùng lúc</label>
+                  <span class="setting-desc">Tự thu gọn thẻ đang mở khi chạm sang đơn khác</span>
+                </div>
+                <button
+                  id="toggle-single-expand"
+                  type="button"
+                  class="switch-btn"
+                  role="switch"
+                  aria-checked="false"
+                  data-setting-toggle="singleExpand"
+                >
+                  <span class="switch-track"><span class="switch-thumb"></span></span>
+                </button>
+              </div>
+
+              <div class="setting-row">
+                <div class="setting-info">
+                  <label for="toggle-auto-expand-new" class="setting-label">Tự mở đơn hàng vừa thêm</label>
+                  <span class="setting-desc">Tự bung chi tiết đơn đầu tiên sau khi lưu danh sách mới</span>
+                </div>
+                <button
+                  id="toggle-auto-expand-new"
+                  type="button"
+                  class="switch-btn"
+                  role="switch"
+                  aria-checked="false"
+                  data-setting-toggle="autoExpandNew"
+                >
+                  <span class="switch-track"><span class="switch-thumb"></span></span>
+                </button>
+              </div>
+
+              <div class="setting-row">
+                <div class="setting-info">
+                  <label for="toggle-show-payment-badge" class="setting-label">Hiện nhãn Tiền mặt / Chuyển khoản</label>
+                  <span class="setting-desc">Hiển thị hình thức thanh toán ngay trên thẻ thu gọn</span>
+                </div>
+                <button
+                  id="toggle-show-payment-badge"
+                  type="button"
+                  class="switch-btn is-on"
+                  role="switch"
+                  aria-checked="true"
+                  data-setting-toggle="showPaymentBadge"
+                >
+                  <span class="switch-track"><span class="switch-thumb"></span></span>
+                </button>
+              </div>
+
+              <div class="setting-row">
+                <div class="setting-info">
+                  <label for="toggle-highlight-carryover" class="setting-label">Cảnh báo đơn tồn qua ngày</label>
+                  <span class="setting-desc">Hiện nhãn ngày tạo cũ và bộ đếm đơn tồn tại Trang chủ</span>
+                </div>
+                <button
+                  id="toggle-highlight-carryover"
+                  type="button"
+                  class="switch-btn is-on"
+                  role="switch"
+                  aria-checked="true"
+                  data-setting-toggle="highlightCarryover"
+                >
+                  <span class="switch-track"><span class="switch-thumb"></span></span>
+                </button>
+              </div>
+
+              <div class="setting-row">
+                <div class="setting-info">
+                  <label for="toggle-warn-missing-photo" class="setting-label">Nhắc khi hoàn thành chưa có ảnh</label>
+                  <span class="setting-desc">Thông báo nhắc chụp ảnh xác nhận nếu đơn chưa có ảnh</span>
+                </div>
+                <button
+                  id="toggle-warn-missing-photo"
+                  type="button"
+                  class="switch-btn"
+                  role="switch"
+                  aria-checked="false"
+                  data-setting-toggle="warnMissingPhoto"
+                >
+                  <span class="switch-track"><span class="switch-thumb"></span></span>
+                </button>
+              </div>
+
+              <div class="setting-row">
+                <div class="setting-info">
+                  <label for="toggle-show-collapse-btn" class="setting-label">Hiện nút "Thu gọn thẻ" cuối đơn</label>
+                  <span class="setting-desc">Tắt nếu chỉ muốn chạm vào tiêu đề thẻ để đóng mở</span>
+                </div>
+                <button
+                  id="toggle-show-collapse-btn"
+                  type="button"
+                  class="switch-btn is-on"
+                  role="switch"
+                  aria-checked="true"
+                  data-setting-toggle="showCollapseButton"
+                >
+                  <span class="switch-track"><span class="switch-thumb"></span></span>
+                </button>
+              </div>
+
+              <div class="setting-row">
+                <div class="setting-info">
+                  <label for="toggle-haptic" class="setting-label">Rung nhẹ khi chạm nút</label>
+                  <span class="setting-desc">Phản hồi xúc giác trên thiết bị Android hỗ trợ</span>
+                </div>
+                <button
+                  id="toggle-haptic"
+                  type="button"
+                  class="switch-btn is-on"
+                  role="switch"
+                  aria-checked="true"
+                  data-setting-toggle="hapticFeedback"
+                >
+                  <span class="switch-track"><span class="switch-thumb"></span></span>
+                </button>
+              </div>
+
+              <div class="setting-row">
+                <div class="setting-info">
+                  <label for="toggle-confirm-actions" class="setting-label">Hỏi xác nhận Hoàn thành / Hủy đơn</label>
+                  <span class="setting-desc">Tránh bấm nhầm khi đang di chuyển ngoài đường</span>
+                </div>
+                <button
+                  id="toggle-confirm-actions"
+                  type="button"
+                  class="switch-btn is-on"
+                  role="switch"
+                  aria-checked="true"
+                  data-setting-toggle="confirmActions"
+                >
+                  <span class="switch-track"><span class="switch-thumb"></span></span>
+                </button>
+              </div>
+
+              <div class="setting-row-block">
+                <div class="setting-info">
+                  <span class="setting-label">Thanh toán mặc định khi thêm đơn</span>
+                  <span class="setting-desc">Áp dụng tự động cho đơn nhập nhanh</span>
+                </div>
+                <div
+                  id="setting-payment-group"
+                  class="segmented-control settings-segmented"
+                  role="radiogroup"
+                  aria-label="Thanh toán mặc định"
+                >
+                  <button type="button" class="seg-btn active" data-payment-choice="cash" role="radio" aria-checked="true">
+                    Tiền mặt
+                  </button>
+                  <button type="button" class="seg-btn" data-payment-choice="transfer" role="radio" aria-checked="false">
+                    Chuyển khoản
+                  </button>
+                </div>
+              </div>
+
+              <div class="setting-row-block">
+                <div class="setting-info">
+                  <span class="setting-label">Ứng dụng bản đồ ưu tiên</span>
+                  <span class="setting-desc">Chọn bản đồ mở khi bấm nút Chỉ đường</span>
+                </div>
+                <div
+                  id="setting-map-group"
+                  class="segmented-control settings-segmented"
+                  role="radiogroup"
+                  aria-label="Ứng dụng bản đồ ưu tiên"
+                >
+                  <button type="button" class="seg-btn active" data-map-choice="auto" role="radio" aria-checked="true">
+                    Tự động
+                  </button>
+                  <button type="button" class="seg-btn" data-map-choice="google" role="radio" aria-checked="false">
+                    Google Maps
+                  </button>
+                  <button type="button" class="seg-btn" data-map-choice="apple" role="radio" aria-checked="false">
+                    Apple Maps
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- 4. Dữ liệu & Sao lưu -->
+            <div class="panel-card settings-group">
+              <h3 class="settings-group-title">Dữ liệu &amp; Sao lưu</h3>
+              <p id="settings-data-summary" class="settings-summary-text tabular-nums"></p>
+              <div class="settings-actions-grid">
+                <button id="btn-backup-export" type="button" class="btn btn-primary">
+                  Sao lưu JSON
+                </button>
+                <button id="btn-backup-import" type="button" class="btn btn-secondary">
+                  Khôi phục JSON
+                </button>
+                <button id="btn-clear-cancelled" type="button" class="btn btn-secondary">
+                  Dọn đơn đã hủy
+                </button>
+                <button id="btn-reset-settings" type="button" class="btn btn-secondary">
+                  Đặt lại cài đặt
+                </button>
+                <button id="btn-clear-all-orders" type="button" class="btn btn-danger settings-btn-full">
+                  Xóa toàn bộ đơn hàng
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- HỒ SƠ TÀI XẾ -->
+        <section
+          id="page-profile"
+          class="page"
+          aria-labelledby="nav-profile"
+          hidden
+        >
+          <div class="section-header-row">
+            <h2 class="section-title glass-text">Hồ sơ tài xế</h2>
+            <button id="btn-edit-profile" type="button" class="btn-outline-sm">
+              Sửa hồ sơ
+            </button>
+          </div>
+
+          <div class="profile-stack">
+            <!-- Avatar tròn ở giữa + Tên tài xế -->
+            <div class="panel-card profile-hero-card">
+              <div class="profile-avatar-wrap">
+                <div class="profile-avatar-circle">
+                  <img
+                    id="profile-avatar-img"
+                    class="profile-avatar-img"
+                    src=""
+                    alt="Ảnh đại diện tài xế"
+                    hidden
+                  />
+                  <div id="profile-avatar-default" class="profile-avatar-default" aria-hidden="true">
+                    <svg
+                      viewBox="0 0 64 64"
+                      width="68"
+                      height="68"
+                      fill="none"
+                    >
+                      <circle cx="32" cy="24" r="12" fill="currentColor" opacity="0.92"></circle>
+                      <path
+                        d="M12 54c0-10.5 8.95-18 20-18s20 7.5 20 18"
+                        fill="currentColor"
+                        opacity="0.86"
+                      ></path>
+                    </svg>
+                  </div>
+                </div>
+                <button
+                  id="btn-change-avatar"
+                  type="button"
+                  class="profile-avatar-edit-btn"
+                  aria-label="Đổi ảnh đại diện"
+                  title="Đổi ảnh đại diện"
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    width="18"
+                    height="18"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2.2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                    <circle cx="12" cy="13" r="4"></circle>
+                  </svg>
+                </button>
+              </div>
+
+              <h3 id="profile-display-name" class="profile-name">users_000000</h3>
+              <p id="profile-role-badge" class="profile-role-tag">Tài xế giao hàng • Tom Shipper</p>
+              <p id="profile-bio-text" class="profile-bio" hidden></p>
+
+              <div class="profile-avatar-actions">
+                <button id="btn-upload-avatar" type="button" class="chip-btn">
+                  Đổi ảnh đại diện
+                </button>
+                <button id="btn-reset-avatar" type="button" class="chip-btn" hidden>
+                  Ảnh mặc định
+                </button>
+              </div>
+            </div>
+
+            <!-- Tóm tắt đơn thực tế của tài xế -->
+            <div class="profile-stats-grid">
+              <div class="kpi-card kpi-pending">
+                <span class="kpi-label">Đang chờ giao</span>
+                <span id="profile-stat-pending" class="kpi-value">0</span>
+              </div>
+              <div class="kpi-card kpi-completed">
+                <span class="kpi-label">Đã giao xong</span>
+                <span id="profile-stat-completed" class="kpi-value">0</span>
+              </div>
+            </div>
+
+            <!-- Thông tin liên hệ đơn giản -->
+            <div class="panel-card profile-info-card">
+              <div class="profile-info-header">
+                <h3 class="settings-group-title">Thông tin liên hệ</h3>
+                <button id="btn-edit-profile-inline" type="button" class="profile-edit-link">
+                  Cập nhật
+                </button>
+              </div>
+              <div id="profile-info-list" class="profile-info-list"></div>
+            </div>
+          </div>
+        </section>
       </main>
 
       <footer class="app-footer">
@@ -599,9 +973,33 @@
       </svg>
     </button>
 
-    <!-- BOTTOM NAVIGATION (TRANG CHỦ Ở CHÍNH GIỮA) -->
+    <!-- BOTTOM NAVIGATION (TRANG CHỦ Ở ĐẦU TIÊN) -->
     <nav class="bottom-nav" aria-label="Điều hướng chính">
       <div class="bottom-nav-inner">
+        <button
+          id="nav-home"
+          type="button"
+          class="nav-item active"
+          data-tab="home"
+          aria-current="page"
+        >
+          <span class="nav-icon" aria-hidden="true">
+            <svg
+              viewBox="0 0 24 24"
+              width="21"
+              height="21"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.1"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M3 9.5L12 3l9 6.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1V9.5z"></path>
+            </svg>
+          </span>
+          <span class="nav-label">Trang chủ</span>
+        </button>
+
         <button
           id="nav-stats"
           type="button"
@@ -612,8 +1010,8 @@
           <span class="nav-icon" aria-hidden="true">
             <svg
               viewBox="0 0 24 24"
-              width="22"
-              height="22"
+              width="21"
+              height="21"
               fill="none"
               stroke="currentColor"
               stroke-width="2.1"
@@ -629,30 +1027,6 @@
         </button>
 
         <button
-          id="nav-home"
-          type="button"
-          class="nav-item active"
-          data-tab="home"
-          aria-current="page"
-        >
-          <span class="nav-icon" aria-hidden="true">
-            <svg
-              viewBox="0 0 24 24"
-              width="22"
-              height="22"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2.1"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <path d="M3 9.5L12 3l9 6.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1V9.5z"></path>
-            </svg>
-          </span>
-          <span class="nav-label">Trang chủ</span>
-        </button>
-
-        <button
           id="nav-history"
           type="button"
           class="nav-item"
@@ -662,8 +1036,8 @@
           <span class="nav-icon" aria-hidden="true">
             <svg
               viewBox="0 0 24 24"
-              width="22"
-              height="22"
+              width="21"
+              height="21"
               fill="none"
               stroke="currentColor"
               stroke-width="2.1"
@@ -675,6 +1049,56 @@
             </svg>
           </span>
           <span class="nav-label">Lịch sử</span>
+        </button>
+
+        <button
+          id="nav-profile"
+          type="button"
+          class="nav-item"
+          data-tab="profile"
+          aria-current="false"
+        >
+          <span class="nav-icon" aria-hidden="true">
+            <svg
+              viewBox="0 0 24 24"
+              width="21"
+              height="21"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.1"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+              <circle cx="12" cy="7" r="4"></circle>
+            </svg>
+          </span>
+          <span class="nav-label">Hồ sơ</span>
+        </button>
+
+        <button
+          id="nav-settings"
+          type="button"
+          class="nav-item"
+          data-tab="settings"
+          aria-current="false"
+        >
+          <span class="nav-icon" aria-hidden="true">
+            <svg
+              viewBox="0 0 24 24"
+              width="21"
+              height="21"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.1"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <circle cx="12" cy="12" r="3"></circle>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+            </svg>
+          </span>
+          <span class="nav-label">Cài đặt</span>
         </button>
       </div>
     </nav>
@@ -955,12 +1379,148 @@
       </div>
     </div>
 
-    <!-- INPUT CAMERA ẨN -->
+    <!-- MODAL CHỈNH SỬA HỒ SƠ TÀI XẾ -->
+    <div
+      id="modal-profile"
+      class="modal-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="modal-profile-title"
+      hidden
+    >
+      <div class="modal-sheet">
+        <div class="sheet-drag-handle" aria-hidden="true"><span></span></div>
+        <div class="modal-header">
+          <h2 id="modal-profile-title" class="modal-title">Cập nhật hồ sơ tài xế</h2>
+          <button
+            type="button"
+            class="modal-close"
+            data-close-modal="modal-profile"
+            aria-label="Đóng hộp thoại hồ sơ"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              width="22"
+              height="22"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.4"
+              stroke-linecap="round"
+            >
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+        <form id="form-edit-profile" class="modal-body-form" novalidate>
+          <div class="modal-scroll-content">
+            <div class="form-group">
+              <label for="profile-input-name" class="field-label">Tên tài xế</label>
+              <input
+                id="profile-input-name"
+                type="text"
+                class="field-input"
+                placeholder="Để trống sẽ dùng tên mặc định users_XXXXXX"
+              />
+            </div>
+
+            <div class="form-group">
+              <label for="profile-input-hotline" class="field-label">Hotline / Số điện thoại</label>
+              <input
+                id="profile-input-hotline"
+                type="tel"
+                class="field-input"
+                inputmode="tel"
+                placeholder="Ví dụ: 0901234567"
+              />
+            </div>
+
+            <div class="form-group">
+              <label for="profile-input-gmail" class="field-label">Gmail / Email</label>
+              <input
+                id="profile-input-gmail"
+                type="email"
+                class="field-input"
+                inputmode="email"
+                placeholder="Ví dụ: taixe@gmail.com"
+              />
+            </div>
+
+            <div class="form-group">
+              <label for="profile-input-zalo" class="field-label">Zalo</label>
+              <input
+                id="profile-input-zalo"
+                type="text"
+                class="field-input"
+                placeholder="Số Zalo hoặc tên hiển thị Zalo"
+              />
+            </div>
+
+            <div class="form-group">
+              <label for="profile-input-vehicle" class="field-label">Phương tiện &amp; Biển số</label>
+              <input
+                id="profile-input-vehicle"
+                type="text"
+                class="field-input"
+                placeholder="Ví dụ: Xe máy • 59X1-123.45"
+              />
+            </div>
+
+            <div class="form-group">
+              <label for="profile-input-area" class="field-label">Khu vực giao hàng</label>
+              <input
+                id="profile-input-area"
+                type="text"
+                class="field-input"
+                placeholder="Ví dụ: Quận 1, Quận 3, Bình Thạnh"
+              />
+            </div>
+
+            <div class="form-group">
+              <label for="profile-input-bio" class="field-label">Giới thiệu / Ghi chú</label>
+              <textarea
+                id="profile-input-bio"
+                class="field-input field-textarea-sm"
+                rows="2"
+                placeholder="Ví dụ: Giao hàng nhanh trong ngày, luôn gọi trước khi đến"
+              ></textarea>
+            </div>
+          </div>
+
+          <div class="modal-footer">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              data-close-modal="modal-profile"
+            >
+              Hủy
+            </button>
+            <button type="submit" class="btn btn-primary">
+              Lưu hồ sơ
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- INPUT CAMERA, AVATAR & KHÔI PHỤC DỮ LIỆU ẨN -->
     <input
       id="camera-input"
       type="file"
       accept="image/*"
       capture="environment"
+      hidden
+    />
+    <input
+      id="avatar-input"
+      type="file"
+      accept="image/*"
+      hidden
+    />
+    <input
+      id="import-backup-input"
+      type="file"
+      accept="application/json,.json"
       hidden
     />
 
